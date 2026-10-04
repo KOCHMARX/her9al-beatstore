@@ -1,0 +1,54 @@
+HER9AL V3 - DIRECT GOOGLE + DISCORD LOGIN
+=========================================
+
+WHAT CHANGED
+- Login no longer uses Supabase Auth endpoints.
+- Browser flow is now:
+  HER9AL -> Google/Discord -> HER9AL
+- Supabase stays connected for database/storage.
+- Session is stored in a signed, HttpOnly, SameSite=Lax cookie.
+- No new npm dependency is required.
+
+VERCEL ENVIRONMENT VARIABLES (Production)
+-----------------------------------------
+Keep:
+NEXT_PUBLIC_SUPABASE_URL = your real Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY = your sb_publishable_... key
+
+Add these as SECRET values:
+GOOGLE_CLIENT_ID = Google OAuth client ID
+GOOGLE_CLIENT_SECRET = Google OAuth client secret
+DISCORD_CLIENT_ID = Discord application client ID
+DISCORD_CLIENT_SECRET = Discord application client secret
+AUTH_SECRET = a long random secret (at least 32 random bytes)
+
+GOOGLE CLOUD
+------------
+In HER9AL WEB OAuth client, Authorized redirect URI must be:
+https://her9al-beatstore.vercel.app/api/auth/google/callback
+
+You can remove the old Supabase /auth/v1/callback URI after V3 is deployed.
+
+DISCORD DEVELOPER PORTAL
+------------------------
+Application -> OAuth2 -> Redirects:
+https://her9al-beatstore.vercel.app/api/auth/discord/callback
+
+SUPABASE
+--------
+Google/Discord providers in Supabase Authentication are no longer required for V3 login.
+Do NOT delete your database or schema. Supabase remains the database/storage backend.
+
+DEPLOY
+------
+1. Replace the GitHub project files with this V3.
+2. Commit + push to main.
+3. Vercel redeploys automatically.
+4. Add the 5 Vercel auth variables above if not already present.
+5. Open https://her9al-beatstore.vercel.app/login
+6. Test Google and Discord.
+
+SECURITY
+--------
+- Never put GOOGLE_CLIENT_SECRET, DISCORD_CLIENT_SECRET or AUTH_SECRET in NEXT_PUBLIC_* variables.
+- If a secret was pasted in chat or shown publicly, rotate it before production.

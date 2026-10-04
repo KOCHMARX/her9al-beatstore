@@ -1,3 +1,93 @@
 'use client';
-import SiteHeader from '@/components/SiteHeader';import {useEffect,useState} from 'react';import {Plus,Trash2,Upload} from 'lucide-react';
-export default function Admin(){const [allowed,setAllowed]=useState<boolean|null>(null),[beats,setBeats]=useState<any[]>([]),[users,setUsers]=useState<any[]>([]),[tab,setTab]=useState<'beats'|'users'>('beats'),[form,setForm]=useState<any>({title:'',bpm:'',musical_key:'',mood:'',price:'29.99',license_name:'Standard',file_format:'WAV + MP3',published:true}),[busy,setBusy]=useState('');const load=async()=>{const r=await fetch('/api/admin/beats',{cache:'no-store'});if(r.status===403){setAllowed(false);return}if(r.status===401){location.href='/login';return}setAllowed(true);const j=await r.json();setBeats(j.beats||[]);const ur=await fetch('/api/admin/users',{cache:'no-store'});if(ur.ok)setUsers((await ur.json()).users||[])};useEffect(()=>{load()},[]);const upload=async(kind:string,file:File)=>{setBusy(`Uploading ${kind}...`);const fd=new FormData();fd.append('kind',kind);fd.append('file',file);const r=await fetch('/api/admin/upload',{method:'POST',body:fd});const j=await r.json();if(!r.ok){alert(j.error||'Upload failed');setBusy('');return}setForm((x:any)=>({...x,[kind==='master'?'master_path':`${kind}_url`]:kind==='master'?j.path:j.url}));setBusy('')};const add=async()=>{setBusy('Publishing...');const r=await fetch('/api/admin/beats',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(form)});const j=await r.json();if(!r.ok)alert(j.error||'Could not add beat');else{setForm({title:'',bpm:'',musical_key:'',mood:'',price:'29.99',license_name:'Standard',file_format:'WAV + MP3',published:true});await load()}setBusy('')};const del=async(id:string)=>{if(!confirm('Delete this beat?'))return;await fetch('/api/admin/beats?id='+id,{method:'DELETE'});load()};const role=async(id:string,v:string)=>{await fetch('/api/admin/users',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id,role:v})});load()};if(allowed===null)return <main><SiteHeader/><div className="loading">Loading admin…</div></main>;if(!allowed)return <main><SiteHeader/><div className="forbidden"><h1>403</h1><p>This account is not a HER9AL admin.</p></div></main>;return <main><SiteHeader/><section className="admin-v4"><div className="admin-title"><div><span>OWNER / ADMIN PANEL</span><h1>HER9AL Studio</h1></div><div className="tabs"><button className={tab==='beats'?'active':''} onClick={()=>setTab('beats')}>Beats</button><button className={tab==='users'?'active':''} onClick={()=>setTab('users')}>Users & roles</button></div></div>{tab==='beats'&&<div className="admin-grid"><div className="panel add-beat"><h2><Plus size={19}/> Add a beat</h2><div className="form-grid"><label>Title<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>BPM<input type="number" value={form.bpm} onChange={e=>setForm({...form,bpm:e.target.value})}/></label><label>Key<input value={form.musical_key} onChange={e=>setForm({...form,musical_key:e.target.value})} placeholder="F#m"/></label><label>Mood<input value={form.mood} onChange={e=>setForm({...form,mood:e.target.value})} placeholder="Dark"/></label><label>Price ($)<input type="number" step="0.01" value={form.price} onChange={e=>setForm({...form,price:e.target.value})}/></label><label>License<input value={form.license_name} onChange={e=>setForm({...form,license_name:e.target.value})}/></label></div><div className="upload-row"><label className={form.cover_url?'done':''}><Upload size={16}/> Cover<input type="file" accept="image/*" onChange={e=>e.target.files?.[0]&&upload('cover',e.target.files[0])}/></label><label className={form.preview_url?'done':''}><Upload size={16}/> Preview MP3<input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&upload('preview',e.target.files[0])}/></label><label className={form.master_path?'done':''}><Upload size={16}/> Private master<input type="file" accept="audio/*,.zip" onChange={e=>e.target.files?.[0]&&upload('master',e.target.files[0])}/></label></div><label className="check"><input type="checkbox" checked={!!form.published} onChange={e=>setForm({...form,published:e.target.checked})}/> Publish immediately</label><button className="primary square" onClick={add} disabled={!!busy||!form.title||!form.cover_url||!form.preview_url||!form.master_path}>{busy||'Publish beat'}</button><p className="tiny-note">Upload a short/watermarked preview. The master stays in a private bucket and is signed for paid customers only.</p></div><div className="panel"><h2>Catalog ({beats.length})</h2><div className="admin-beat-list">{beats.map(b=><div className="admin-beat" key={b.id}><img src={b.cover_url||'/her9al-logo.jpg'}/><div><b>{b.title}</b><span>{b.published?'Live':'Draft'} · {b.bpm||'—'} BPM</span></div><button onClick={()=>del(b.id)}><Trash2 size={16}/></button></div>)}{!beats.length&&<p className="muted">No beats yet.</p>}</div></div></div>}{tab==='users'&&<div className="panel"><h2>Users & roles</h2><p className="subcopy">Owner/admin can promote an account after the user logs in once.</p><div className="users-table">{users.map(u=><div className="user-row" key={u.id}><img src={u.avatar_url||'/her9al-logo.jpg'}/><div><b>{u.display_name||u.email}</b><span>{u.email} · {u.provider}</span></div><select value={u.role} onChange={e=>role(u.id,e.target.value)}><option value="customer">Customer</option><option value="editor">Editor</option><option value="admin">Admin</option><option value="owner">Owner</option></select></div>)}</div></div>}</section></main>}
+
+import SiteHeader from '@/components/SiteHeader';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, Plus, Trash2, Upload } from 'lucide-react';
+
+type UploadState = { kind: string; name: string; progress: number } | null;
+
+export default function Admin() {
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [beats, setBeats] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [tab, setTab] = useState<'beats' | 'users'>('beats');
+  const [form, setForm] = useState<any>({ title: '', bpm: '', musical_key: '', mood: '', price: '29.99', license_name: 'Standard', file_format: 'WAV + MP3', published: true });
+  const [busy, setBusy] = useState('');
+  const [uploadState, setUploadState] = useState<UploadState>(null);
+
+  const load = async () => {
+    const r = await fetch('/api/admin/beats', { cache: 'no-store' });
+    if (r.status === 403) { setAllowed(false); return; }
+    if (r.status === 401) { location.href = '/login'; return; }
+    setAllowed(true);
+    const j = await r.json();
+    setBeats(j.beats || []);
+    const ur = await fetch('/api/admin/users', { cache: 'no-store' });
+    if (ur.ok) setUsers((await ur.json()).users || []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const upload = (kind: string, file: File) => {
+    setBusy(`Uploading ${kind}…`);
+    setUploadState({ kind, name: file.name, progress: 0 });
+
+    const fd = new FormData();
+    fd.append('kind', kind);
+    fd.append('file', file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/admin/upload');
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const progress = Math.round((e.loaded / e.total) * 100);
+        setUploadState({ kind, name: file.name, progress });
+      }
+    };
+    xhr.onload = () => {
+      try {
+        const j = JSON.parse(xhr.responseText || '{}');
+        if (xhr.status < 200 || xhr.status >= 300) {
+          alert(j.error || 'Upload failed');
+          setBusy('');
+          setUploadState(null);
+          return;
+        }
+        setForm((x: any) => ({ ...x, [kind === 'master' ? 'master_path' : `${kind}_url`]: kind === 'master' ? j.path : j.url }));
+        setUploadState({ kind, name: file.name, progress: 100 });
+        setBusy('');
+        setTimeout(() => setUploadState(null), 1800);
+      } catch {
+        alert('Upload failed');
+        setBusy('');
+        setUploadState(null);
+      }
+    };
+    xhr.onerror = () => {
+      alert('Network error during upload');
+      setBusy('');
+      setUploadState(null);
+    };
+    xhr.send(fd);
+  };
+
+  const add = async () => {
+    setBusy('Publishing…');
+    const r = await fetch('/api/admin/beats', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(form) });
+    const j = await r.json();
+    if (!r.ok) alert(j.error || 'Could not add beat');
+    else {
+      setForm({ title: '', bpm: '', musical_key: '', mood: '', price: '29.99', license_name: 'Standard', file_format: 'WAV + MP3', published: true });
+      await load();
+    }
+    setBusy('');
+  };
+
+  const del = async (id: string) => { if (!confirm('Delete this beat?')) return; await fetch('/api/admin/beats?id=' + id, { method: 'DELETE' }); load(); };
+  const role = async (id: string, v: string) => { await fetch('/api/admin/users', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, role: v }) }); load(); };
+
+  if (allowed === null) return <main><SiteHeader /><div className="loading">Loading admin…</div></main>;
+  if (!allowed) return <main><SiteHeader /><div className="forbidden"><h1>403</h1><p>This account is not a HER9AL admin.</p></div></main>;
+
+  return <main><SiteHeader/><section className="admin-v4"><div className="admin-title"><div><span>OWNER / ADMIN PANEL</span><h1>HER9AL Studio</h1></div><div className="tabs"><button className={tab==='beats'?'active':''} onClick={()=>setTab('beats')}>Beats</button><button className={tab==='users'?'active':''} onClick={()=>setTab('users')}>Users & roles</button></div></div>{tab==='beats'&&<div className="admin-grid"><div className="panel add-beat"><h2><Plus size={19}/> Add a beat</h2><div className="form-grid"><label>Title<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>BPM<input type="number" value={form.bpm} onChange={e=>setForm({...form,bpm:e.target.value})}/></label><label>Key<input value={form.musical_key} onChange={e=>setForm({...form,musical_key:e.target.value})} placeholder="F#m"/></label><label>Mood<input value={form.mood} onChange={e=>setForm({...form,mood:e.target.value})} placeholder="Dark"/></label><label>Price ($)<input type="number" step="0.01" value={form.price} onChange={e=>setForm({...form,price:e.target.value})}/></label><label>License<input value={form.license_name} onChange={e=>setForm({...form,license_name:e.target.value})}/></label></div><div className="upload-row"><label className={form.cover_url?'done':''}><Upload size={16}/> Cover<input type="file" accept="image/*" onChange={e=>e.target.files?.[0]&&upload('cover',e.target.files[0])}/></label><label className={form.preview_url?'done':''}><Upload size={16}/> Preview MP3<input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&upload('preview',e.target.files[0])}/></label><label className={form.master_path?'done':''}><Upload size={16}/> Private master<input type="file" accept="audio/*,.zip" onChange={e=>e.target.files?.[0]&&upload('master',e.target.files[0])}/></label></div>{uploadState&&<div className="upload-progress-card admin-upload-progress"><div className="upload-progress-top"><span>{uploadState.progress===100?<><CheckCircle2 size={15}/> Uploaded {uploadState.name}</>:<>Uploading {uploadState.name}</>}</span><b>{uploadState.progress}%</b></div><div className="progress-track"><div className="progress-fill" style={{width:`${uploadState.progress}%`}}/></div></div>}<label className="check"><input type="checkbox" checked={!!form.published} onChange={e=>setForm({...form,published:e.target.checked})}/> Publish immediately</label><button className="primary square" onClick={add} disabled={!!busy||!form.title||!form.cover_url||!form.preview_url||!form.master_path}>{busy&& !busy.startsWith('Uploading')?busy:'Publish beat'}</button><p className="tiny-note">Upload progress is shown live. Use a short/watermarked preview; the private master is only delivered to paid customers.</p></div><div className="panel"><h2>Catalog ({beats.length})</h2><div className="admin-beat-list">{beats.map(b=><div className="admin-beat" key={b.id}><img src={b.cover_url||'/her9al-logo.jpg'}/><div><b>{b.title}</b><span>{b.published?'Live':'Draft'} · {b.bpm||'—'} BPM</span></div><button onClick={()=>del(b.id)}><Trash2 size={16}/></button></div>)}{!beats.length&&<p className="muted">No beats yet.</p>}</div></div></div>}{tab==='users'&&<div className="panel"><h2>Users & roles</h2><p className="subcopy">Owner/admin can promote an account after the user logs in once.</p><div className="users-table">{users.map(u=><div className="user-row" key={u.id}><img src={u.avatar_url||'/her9al-logo.jpg'}/><div><b>{u.display_name||u.email}</b><span>{u.email} · {u.provider}</span></div><select value={u.role} onChange={e=>role(u.id,e.target.value)}><option value="customer">Customer</option><option value="editor">Editor</option><option value="admin">Admin</option><option value="owner">Owner</option></select></div>)}</div></div>}</section></main>;
+}

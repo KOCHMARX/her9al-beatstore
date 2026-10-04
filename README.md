@@ -1,83 +1,56 @@
-# HER9AL Beat Store
+# HER9AL Beat Store V4 — Complete
 
-A custom producer/artist website inspired by the *flow* of modern beat marketplaces and music discovery platforms, with a HER9AL-specific black / white / neon-red identity.
+V4 fixes the missing post-login experience and turns the project into a real beat-store foundation:
 
-## Included
-- Custom HER9AL homepage and artist profile
-- Beat catalog UI + fixed preview player
-- Google/Discord login wiring via Supabase
-- Admin dashboard UI
-- Role model: `owner`, `admin`, `editor`, `customer`
-- Supabase/Postgres schema for beats, licenses, orders and users
-- Private-master architecture ready for signed download URLs
-- Responsive mobile layout
+- Direct Google + Discord OAuth (no Supabase Auth redirect dependency)
+- Persistent HER9AL user account in `app_users`
+- Login button becomes profile menu after login
+- Editable display name/avatar
+- `My Beats` library with permanent purchase history
+- Paid master re-download using short-lived signed URLs
+- Dynamic public beat catalog from database
+- Admin beat upload: cover, preview, private master, BPM/key/mood/price/license
+- Admin users/roles panel
+- Private master storage; public cover/preview storage
+- Stripe Checkout-ready card payment flow + webhook
+- Responsive black / white / neon-red HER9AL design
 
-## Run locally
-1. Install Node.js 20+.
-2. Open this folder in Terminal / PowerShell.
-3. Run:
-   ```bash
-   npm install
-   npm run dev
-   ```
-4. Open `http://localhost:3000`.
+## IMPORTANT: run the new SQL
+Supabase → SQL Editor → New query → paste `supabase/schema.sql` → Run.
+Expected: Success.
 
-## Connect the database
-1. Create a Supabase project.
-2. Open SQL Editor and run `supabase/schema.sql`.
-3. Copy `.env.example` to `.env.local` and fill in:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` (server-only; never expose this in browser code)
-4. In Supabase Auth > Providers, enable Google and Discord.
-5. Add your local URL and production URL to Auth redirect URLs.
+## Vercel environment variables
+Keep your existing variables and add:
 
-## Admins
-Use `profiles.role`:
-- `owner`: full control, including admin management
-- `admin`: manage beats, orders, customers
-- `editor`: manage beats only
-- `customer`: normal user
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase Settings → API Keys → secret/service-role key. **Server-only. Never prefix with NEXT_PUBLIC.**
+- `OWNER_EMAIL` — the exact Google/Discord email that should automatically become Owner on first login.
 
-For production, protect `/admin` server-side by checking the signed-in user's role before rendering or mutating data.
+Existing direct-login variables:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `AUTH_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `DISCORD_CLIENT_ID`
+- `DISCORD_CLIENT_SECRET`
 
-## Audio security architecture
-- Put previews in a public or rate-limited preview bucket.
-- Put WAV/stems/masters in a **private** bucket.
-- Never send master URLs to the browser before payment is verified.
-- After successful payment webhook confirmation, create a short-lived signed URL.
-- Add audible preview watermark/tag if desired.
+Optional live card payments:
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STORE_CURRENCY=usd`
 
-No web app can completely prevent a listener from recording audio that is played on their device, so the safe goal is protecting master-quality files and licensing access.
+If payment variables are missing, the rest of the website still works; checkout shows that payments are not configured instead of pretending a payment succeeded.
 
-## Payments
-The checkout UI is intentionally left provider-neutral. Connect your chosen payment provider with a server-side webhook. Only mark an order as `paid` after verifying the provider's webhook signature/server confirmation.
+## Google redirect
+`https://her9al-beatstore.vercel.app/api/auth/google/callback`
 
-## Deploy
-Recommended easy path:
-1. Push this folder to GitHub.
-2. Import repo in Vercel.
-3. Add the same environment variables in Vercel.
-4. Deploy.
-5. Buy/connect a custom domain such as `her9al.com` or another available name.
-6. Put the final HTTPS link in YouTube / Instagram / Discord profiles.
+## Discord redirect
+`https://her9al-beatstore.vercel.app/api/auth/discord/callback`
 
-## Before launch
-- Replace demo beats with real data from Supabase.
-- Wire play buttons to real preview files.
-- Implement cart + license selection + checkout.
-- Add server-side admin guards and storage policies.
-- Add payment webhooks and post-purchase signed downloads.
+## First owner login
+Set `OWNER_EMAIL` in Vercel to your login email, redeploy, then log out/log back in once. The account becomes `owner` automatically and can access `/admin`.
 
-## Vinyl hero
-The homepage now includes a rotating vinyl visual using the current featured cover. Replace `/public/her9al-logo.jpg` or pass another cover path to `HeroVinyl` to change the center artwork.
+## Upload safety
+Upload a shortened/watermarked MP3 as the preview. Upload the WAV/ZIP master separately. The master is stored in the private `beat-masters` bucket and is never exposed in the public catalog. Paid users receive a 60-second signed download URL.
 
-## Fastest free deployment
-1. Create a GitHub repository and push this project.
-2. Sign in to Vercel with GitHub and import the repository.
-3. In Vercel → Project → Settings → Environment Variables, add the values from `.env.example`.
-4. Deploy. Vercel will give you a public `*.vercel.app` URL.
-5. In Supabase Auth URL settings, add both your production URL and `https://YOUR-DOMAIN/auth/callback` as allowed redirect URLs.
-6. Enable Google and/or Discord providers in Supabase Auth and fill their provider credentials.
-
-Do not enable a real payment button until the paid-order confirmation and private master delivery flow are connected. This avoids charging customers before an automated download is available.
+No website can technically prevent someone from recording audio they can hear. Keeping masters private and only streaming a preview is the meaningful protection.

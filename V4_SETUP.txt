@@ -1,0 +1,11 @@
+HER9AL V4 - FAST SETUP
+======================
+1) Replace your GitHub project files with this V4 and push.
+2) Supabase > SQL Editor > run supabase/schema.sql.
+3) Vercel > Environment Variables: add SUPABASE_SERVICE_ROLE_KEY and OWNER_EMAIL.
+4) Redeploy.
+5) Logout + login with Google again.
+6) Navbar should show your avatar/name instead of Login.
+7) Open /admin and upload cover + preview + master + price.
+8) Published beat appears to everyone on Home/Beats.
+9) Configure Stripe only when you are ready for live card payments.

@@ -1,16 +1,4 @@
 'use client';
 import { Play, ShoppingBag } from 'lucide-react';
-
-export type Beat = { id:string; title:string; bpm:number; keyName:string; mood:string; price:number; cover?:string };
-
-export default function BeatCard({beat}:{beat:Beat}){
-  return <article className="beat-card">
-    <div className="cover" style={{backgroundImage:`url(${beat.cover || '/her9al-logo.jpg'})`}}>
-      <button className="play"><Play size={18} fill="currentColor" /></button>
-    </div>
-    <div className="beat-meta">
-      <div><h3>{beat.title}</h3><p>{beat.bpm} BPM · {beat.keyName} · {beat.mood}</p></div>
-      <button className="buy"><ShoppingBag size={16}/> ${beat.price}</button>
-    </div>
-  </article>
-}
+export type Beat={id:string;title:string;bpm?:number|null;musical_key?:string|null;mood?:string|null;cover_url?:string|null;preview_url?:string|null;licenses?:{id:string;name:string;price_cents:number;file_format?:string|null}[]};
+export default function BeatCard({beat,onPlay}:{beat:Beat;onPlay?:(b:Beat)=>void}){const lic=beat.licenses?.[0];const buy=async()=>{if(!lic)return;const r=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({license_id:lic.id})});const j=await r.json();if(r.status===401){location.href='/login';return}if(j.url)location.href=j.url;else alert(j.error==='payments_not_configured'?'Payment is not live yet. Add your payment-provider keys in Vercel.':j.error||'Checkout failed');};return <article className="beat-card"><div className="cover" style={{backgroundImage:`url(${beat.cover_url||'/her9al-logo.jpg'})`}}><button className="play" onClick={()=>onPlay?.(beat)} disabled={!beat.preview_url}><Play size={18} fill="currentColor"/></button></div><div className="beat-meta"><div><h3>{beat.title}</h3><p>{beat.bpm||'—'} BPM · {beat.musical_key||'—'} · {beat.mood||'HER9AL'}</p></div>{lic?<button className="buy" onClick={buy}><ShoppingBag size={16}/> ${(lic.price_cents/100).toFixed(2)}</button>:<span className="muted-price">Soon</span>}</div></article>}

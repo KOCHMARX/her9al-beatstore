@@ -1,0 +1,3 @@
+import { NextResponse } from 'next/server';import { currentUser } from '@/lib/current-user';import { adminDb } from '@/lib/db';
+export const runtime='nodejs';
+export async function GET(){const u=await currentUser();if(!u)return NextResponse.json({error:'unauthorized'},{status:401});const db=adminDb();const {data,error}=await db.from('order_items').select('id,price_cents,created_at,beat:beats(id,title,cover_url),license:licenses(id,name,file_format),order:orders!inner(id,status,user_id)').eq('order.user_id',u.id).eq('order.status','paid').order('created_at',{ascending:false});if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({items:data||[]});}

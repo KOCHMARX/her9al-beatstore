@@ -1,5 +1,2 @@
-import Link from 'next/link';
-import BeatCard from '@/components/BeatCard';
-import AudioPlayer from '@/components/AudioPlayer';
-const beats=Array.from({length:8},(_,i)=>({id:String(i+1),title:['NOIR','REDLINE','AFTER 2AM','VOID','NEON CITY','CRASHOUT','MIDNIGHT','VENOM'][i],bpm:125+i*4,keyName:['F#m','Dm','Am','Cm'][i%4],mood:['Dark','Aggressive','Melodic','Ambient'][i%4],price:[29.99,39.99,24.99,34.99][i%4]}));
-export default function Beats(){return <main><nav className="nav"><Link href="/" className="brand"><img src="/her9al-logo.jpg"/><span>HER9AL</span></Link><div className="navlinks"><Link href="/">Home</Link><Link href="/login">Login</Link></div></nav><section className="section page"><div className="section-head"><div><span>CATALOG</span><h1>Find your sound.</h1></div></div><div className="filters"><input placeholder="Search beats..."/><button>All</button><button>Dark</button><button>Melodic</button><button>Trap</button></div><div className="grid">{beats.map(b=><BeatCard key={b.id} beat={b}/>)}</div></section><AudioPlayer/></main>}
+import SiteHeader from '@/components/SiteHeader';import BeatGrid from '@/components/BeatGrid';
+export default function Beats(){return <main><SiteHeader/><section className="section page"><div className="section-head"><div><span>CATALOG</span><h1>Find your sound.</h1><p className="subcopy">Preview beats, pick a license and keep every paid purchase in your library.</p></div></div><BeatGrid/></section></main>}

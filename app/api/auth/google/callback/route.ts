@@ -18,5 +18,10 @@ export async function GET(req:NextRequest){
    const appUser=await upsertOAuthUser({provider:'google',providerUserId:String(p.sub),email:p.email??null,name:p.name??null,avatar:p.picture??null});
    const session=createSessionToken({id:appUser.id,provider:'google',email:appUser.email,name:appUser.display_name,avatar:appUser.avatar_url});
    const res=NextResponse.redirect(new URL('/profile',req.url));res.cookies.set(sessionCookie.name,session,sessionCookie.options);res.cookies.delete('her9al_google_state');return res;
- }catch{return NextResponse.redirect(new URL('/login?error=database',req.url));}
+ } catch (error) {
+  console.error('HER9AL GOOGLE DATABASE ERROR:', error);
+
+  return NextResponse.redirect(
+    new URL('/login?error=database', req.url)
+  );
 }

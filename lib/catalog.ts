@@ -9,3 +9,7 @@ export const STYLES = [
 export const MOODS = [
   'Dark','Energetic','Melodic','Aggressive','Emotional','Chill','Dreamy','Cinematic','Happy','Sad','Spacey','Raw','Luxury','Street','Club'
 ] as const;
+
+export type Genre = (typeof GENRES)[number];
+export type BeatStyle = (typeof STYLES)[number];
+export type Mood = (typeof MOODS)[number];

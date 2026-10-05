@@ -1,0 +1,16 @@
+HER9AL V7 FULL FIXED PROJECT
+
+Fix included:
+- GlobalBeat type now includes genre/style/description/albums/licenses.
+- Resolves Vercel TypeScript error in components/BeatGrid.tsx.
+- V7 catalog/albums/search files retained.
+- Vinyl/player behavior retained.
+- Profile/upload/admin/database/payment code retained.
+
+After copying over HER9AL-GITHUB:
+  git add -A
+  git commit -m "HER9AL V7 full fixed project"
+  git push origin main
+
+Supabase migration (if not already run):
+  supabase/v7_catalog_migration.sql

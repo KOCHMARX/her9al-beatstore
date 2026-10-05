@@ -11,6 +11,11 @@ export type GlobalBeat = {
   bpm?: number | null;
   musical_key?: string | null;
   mood?: string | null;
+  genre?: string | null;
+  style?: string | null;
+  description?: string | null;
+  albums?: { id: string; title: string; cover_url?: string | null } | null;
+  licenses?: { id: string; name: string; price_cents: number; file_format?: string | null }[];
 };
 
 type PlayerContextValue = {

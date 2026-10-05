@@ -3,6 +3,7 @@ import SiteHeader from '@/components/SiteHeader';
 import HeroVinyl from '@/components/HeroVinyl';
 import BeatGrid from '@/components/BeatGrid';
 import { adminDb } from '@/lib/db';
+import { COLLABORATORS } from '@/lib/collaborators';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,9 +44,25 @@ export default async function Home() {
         <div className="section-head"><div><span>FEATURED</span><h2>Latest drops</h2></div><Link href="/beats">View all</Link></div>
         <BeatGrid compact />
       </section>
-      <section id="artist" className="artist">
-        <img src="/her9al-logo.jpg" alt="HER9AL" />
-        <div><span>ARTIST PROFILE</span><h2>HER9AL</h2><p>Producer · Beatmaker · Independent artist. Music, licensing and your purchased library in one focused place.</p><div className="chips"><b>Dark</b><b>Trap</b><b>Melodic</b><b>Experimental</b></div></div>
+      <section id="rappers" className="rappers-section">
+        <div className="rappers-head">
+          <span>COLLABORATIONS</span>
+          <h2>Rappers I worked with.</h2>
+          <p>This section is reserved for real artists and rappers you have worked with — credits, releases and links in one place.</p>
+        </div>
+        {COLLABORATORS.length ? (
+          <div className="rappers-grid">
+            {COLLABORATORS.map((artist) => {
+              const card = <>
+                <img src={artist.image || '/her9al-logo.jpg'} alt={artist.name} />
+                <div><strong>{artist.name}</strong><span>{artist.note || 'HER9AL collaboration'}</span></div>
+              </>;
+              return artist.link ? <a className="rapper-card" href={artist.link} target="_blank" rel="noreferrer" key={artist.name}>{card}</a> : <div className="rapper-card" key={artist.name}>{card}</div>;
+            })}
+          </div>
+        ) : (
+          <div className="rappers-empty">Your collaboration cards will appear here when you add the rappers you worked with.</div>
+        )}
       </section>
       <footer>© 2026 HER9AL. All rights reserved.</footer>
     </main>

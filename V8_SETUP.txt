@@ -1,0 +1,18 @@
+HER9AL V8 PLAYER + RAPPERS + SITE ICON
+
+1) Copy the patch files over HER9AL-GITHUB and replace existing files.
+2) git add -A
+3) git commit -m "HER9AL V8 persistent player rappers and site icon"
+4) git push origin main
+5) Wait for Vercel Ready, then Ctrl+F5.
+
+What changed:
+- Global player persists across internal site navigation.
+- Full-width functional waveform/seek bar.
+- Current time + duration.
+- Play/pause + mute + volume.
+- Artist nav renamed to Rappers.
+- Home collaboration section reserved for rappers/artists you actually worked with.
+- Site/favicon icon uses HER9AL logo.
+
+To add collaborators later, edit lib/collaborators.ts or ask for an Admin-managed collaborators system.

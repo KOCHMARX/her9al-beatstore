@@ -1,13 +1,13 @@
 'use client';
 import { useEffect,useMemo,useState } from 'react';
 import BeatCard,{Beat} from '@/components/BeatCard';
-import { AudioLines,Disc3,Headphones,Music2,Pause,Play,Search,Volume2,X } from 'lucide-react';
+import { AudioLines,Disc3,Headphones,Music2,Search,X } from 'lucide-react';
 import { usePlayer } from '@/components/PlayerProvider';
 import { GENRES,STYLES } from '@/lib/catalog';
 
 export default function BeatGrid({compact=false}:{compact?:boolean}){
   const[beats,setBeats]=useState<Beat[]>([]);const[query,setQuery]=useState('');const[genre,setGenre]=useState('All');const[style,setStyle]=useState('All');const[mode,setMode]=useState<'tracks'|'collections'>('tracks');
-  const{activeBeat,playing,playBeat,toggle}=usePlayer();
+  const{playBeat}=usePlayer();
   useEffect(()=>{fetch('/api/beats').then(r=>r.json()).then(j=>setBeats(j.beats||[]))},[]);
   const filtered=useMemo(()=>beats.filter(b=>{const q=query.toLowerCase().trim();const matchesQ=!q||[b.title,b.mood,b.genre,b.style,b.albums?.title,b.description].some(v=>String(v||'').toLowerCase().includes(q));const matchesMode=mode==='tracks'||!!b.albums;return matchesQ&&matchesMode&&(genre==='All'||b.genre===genre)&&(style==='All'||b.style===style)}),[beats,query,genre,style,mode]);
   const reset=()=>{setQuery('');setGenre('All');setStyle('All');setMode('tracks')};
@@ -30,6 +30,5 @@ export default function BeatGrid({compact=false}:{compact?:boolean}){
       <div className="catalog-filter-row"><select value={genre} onChange={e=>setGenre(e.target.value)}><option>All</option>{GENRES.map(x=><option key={x}>{x}</option>)}</select><select value={style} onChange={e=>setStyle(e.target.value)}><option>All</option>{STYLES.map(x=><option key={x}>{x}</option>)}</select><span>{filtered.length} track{filtered.length===1?'':'s'}{mode==='collections'?' in collections':''}</span></div>
     </>}
     <div className="grid">{filtered.slice(0,compact?6:99).map(b=><BeatCard key={b.id} beat={b} onPlay={playBeat}/>)}{!filtered.length&&<div className="empty-state">No beats match these filters yet.</div>}</div>
-    {activeBeat&&<div className="player"><img src={activeBeat.cover_url||'/her9al-logo.jpg'} alt="cover"/><div className="player-info"><strong>{activeBeat.title}</strong><span>{activeBeat.genre||'HER9AL'} · {activeBeat.style||activeBeat.mood||'Protected preview'}</span></div><div className="controls"><button onClick={toggle}>{playing?<Pause/>:<Play fill="currentColor"/>}</button></div><div className="wave waveform-pro">{Array.from({length:64}).map((_,i)=><span key={i} style={{height:`${24+((i*37)%72)}%`}}/>)}</div><Volume2 size={18}/></div>}
   </>;
 }

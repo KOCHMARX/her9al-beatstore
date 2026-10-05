@@ -1,4 +1,54 @@
 'use client';
-import { Play, ShoppingBag } from 'lucide-react';
-export type Beat={id:string;title:string;bpm?:number|null;musical_key?:string|null;mood?:string|null;cover_url?:string|null;preview_url?:string|null;licenses?:{id:string;name:string;price_cents:number;file_format?:string|null}[]};
-export default function BeatCard({beat,onPlay}:{beat:Beat;onPlay?:(b:Beat)=>void}){const lic=beat.licenses?.[0];const buy=async()=>{if(!lic)return;const r=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({license_id:lic.id})});const j=await r.json();if(r.status===401){location.href='/login';return}if(j.url)location.href=j.url;else alert(j.error==='payments_not_configured'?'Payment is not live yet. Add your payment-provider keys in Vercel.':j.error||'Checkout failed');};return <article className="beat-card"><div className="cover" style={{backgroundImage:`url(${beat.cover_url||'/her9al-logo.jpg'})`}}><button className="play" onClick={()=>onPlay?.(beat)} disabled={!beat.preview_url}><Play size={18} fill="currentColor"/></button></div><div className="beat-meta"><div><h3>{beat.title}</h3><p>{beat.bpm||'—'} BPM · {beat.musical_key||'—'} · {beat.mood||'HER9AL'}</p></div>{lic?<button className="buy" onClick={buy}><ShoppingBag size={16}/> ${(lic.price_cents/100).toFixed(2)}</button>:<span className="muted-price">Soon</span>}</div></article>}
+
+import Link from 'next/link';
+import { Play, ArrowUpRight } from 'lucide-react';
+
+export type Beat = {
+  id: string;
+  slug?: string | null;
+  title: string;
+  bpm?: number | null;
+  musical_key?: string | null;
+  mood?: string | null;
+  cover_url?: string | null;
+  preview_url?: string | null;
+  licenses?: { id: string; name: string; price_cents: number; file_format?: string | null }[];
+};
+
+export default function BeatCard({ beat, onPlay }: { beat: Beat; onPlay?: (b: Beat) => void }) {
+  const lic = beat.licenses?.[0];
+  const href = beat.slug ? `/beats/${beat.slug}` : '/beats';
+
+  return (
+    <article className="beat-card pro-beat-card">
+      <Link href={href} className="beat-cover-link" aria-label={`Open ${beat.title}`}>
+        <div className="cover" style={{ backgroundImage: `url(${beat.cover_url || '/her9al-logo.jpg'})` }}>
+          <div className="cover-gradient" />
+          <button
+            type="button"
+            className="play"
+            onClick={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              onPlay?.(beat);
+            }}
+            disabled={!beat.preview_url}
+            aria-label={`Play ${beat.title}`}
+          >
+            <Play size={18} fill="currentColor" />
+          </button>
+        </div>
+      </Link>
+
+      <div className="beat-meta">
+        <div>
+          <Link href={href} className="beat-title-link"><h3>{beat.title}</h3></Link>
+          <p>{beat.bpm || '—'} BPM · {beat.musical_key || '—'} · {beat.mood || 'HER9AL'}</p>
+        </div>
+        <Link href={href} className="view-beat-btn">
+          {lic ? `$${(lic.price_cents / 100).toFixed(2)}` : 'View'} <ArrowUpRight size={15} />
+        </Link>
+      </div>
+    </article>
+  );
+}

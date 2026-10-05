@@ -1,0 +1,21 @@
+HER9AL V6 — catalog, profile avatar, dynamic vinyl, beat details & checkout
+
+WHAT CHANGED
+1. Public catalog fixed: /api/beats again returns published beats (not the temporary diagnostics JSON).
+2. Latest published beat becomes the homepage vinyl cover automatically.
+3. Vinyl play button plays the latest beat preview.
+4. Clicking a beat opens /beats/[slug] with cover, BPM, key, mood, preview and licenses.
+5. Buy opens a professional checkout summary page, then Stripe secure checkout.
+6. Header profile image reloads after profile changes and falls back safely if an image URL fails.
+7. Profile upload dispatches an update event so the navbar refreshes immediately.
+
+PAYMENTS
+To make card payment live in Vercel add:
+STRIPE_SECRET_KEY=<your Stripe secret key>
+STRIPE_WEBHOOK_SECRET=<your Stripe webhook signing secret>
+STORE_CURRENCY=usd
+
+Stripe webhook URL:
+https://her9al-beatstore.vercel.app/api/stripe/webhook
+
+No new Supabase schema changes are required beyond V5.

@@ -1,0 +1,21 @@
+import { notFound } from 'next/navigation';
+import SiteHeader from '@/components/SiteHeader';
+import BeatDetailClient from '@/components/BeatDetailClient';
+import { adminDb } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
+
+export default async function BeatPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const db = adminDb();
+  const { data } = await db
+    .from('beats')
+    .select('id,title,slug,bpm,musical_key,mood,cover_url,preview_url,published,created_at,licenses(id,name,price_cents,file_format,is_exclusive,terms,active)')
+    .eq('slug', slug)
+    .eq('published', true)
+    .maybeSingle();
+
+  if (!data) notFound();
+
+  return <main><SiteHeader /><BeatDetailClient beat={data} /></main>;
+}

@@ -1,0 +1,21 @@
+HER9AL V5 - PROFILE PHOTO + LIVE UPLOAD PROGRESS
+
+WHAT CHANGED
+- Profile photo is now a real file upload, not an Avatar URL field.
+- Supported profile formats: PNG, JPG/JPEG, WEBP, animated GIF.
+- Maximum avatar size: 8 MB.
+- New public Supabase Storage bucket: profile-avatars.
+- Admin beat uploads now show live upload percentage/progress for cover, preview and master.
+- Existing Google/Discord profile, roles, library and admin behavior remain intact.
+
+ONE SUPABASE STEP
+Run supabase/schema.sql again in Supabase SQL Editor.
+The statements are idempotent; this adds/updates the profile-avatars bucket.
+
+DEPLOY
+Copy this version over HER9AL-GITHUB, then:
+  git add -A
+  git commit -m "HER9AL V5 profile uploads and progress"
+  git push origin main
+
+No new Vercel environment variables are required.

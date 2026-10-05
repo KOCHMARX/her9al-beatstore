@@ -1,65 +1,22 @@
 import { NextResponse } from 'next/server';
+import { adminDb } from '@/lib/db';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const rawUrl =
-    process.env.SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    '';
-
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-  const url = rawUrl.trim().replace(/\/+$/, '');
-
-  if (!url) {
-    return NextResponse.json(
-      { error: 'SUPABASE_URL_MISSING' },
-      { status: 500 }
-    );
-  }
-
-  if (!key) {
-    return NextResponse.json(
-      { error: 'SUPABASE_KEY_MISSING' },
-      { status: 500 }
-    );
-  }
-
   try {
-    const host = new URL(url).host;
+    const db = adminDb();
+    const { data, error } = await db
+      .from('beats')
+      .select('id,title,slug,bpm,musical_key,mood,cover_url,preview_url,published,created_at,album_id,licenses(id,name,price_cents,file_format,is_exclusive)')
+      .eq('published', true)
+      .order('created_at', { ascending: false });
 
-    const response = await fetch(`${url}/rest/v1/beats?select=id&limit=1`, {
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-      },
-      cache: 'no-store',
-    });
-
-    const body = await response.text();
-
-    return NextResponse.json({
-      ok: response.ok,
-      status: response.status,
-      host,
-      response: body.slice(0, 500),
-    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ beats: data || [] });
   } catch (error: any) {
-    return NextResponse.json(
-      {
-        error: 'SUPABASE_FETCH_FAILED',
-        message: error?.message || String(error),
-        cause: error?.cause?.code || error?.cause?.message || null,
-        host: (() => {
-          try {
-            return new URL(url).host;
-          } catch {
-            return 'INVALID_URL';
-          }
-        })(),
-      },
-      { status: 500 }
-    );
+    console.error('HER9AL PUBLIC BEATS ERROR:', error);
+    return NextResponse.json({ error: error?.message || 'catalog_failed' }, { status: 500 });
   }
 }

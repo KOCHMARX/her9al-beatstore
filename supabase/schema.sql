@@ -97,3 +97,17 @@ drop policy if exists "public published beats" on public.beats;
 create policy "public published beats" on public.beats for select using (published=true);
 drop policy if exists "public active licenses" on public.licenses;
 create policy "public active licenses" on public.licenses for select using (active=true);
+
+-- V5 profile avatars: public user-uploaded PNG/JPG/JPEG/WEBP/GIF images.
+insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
+values (
+  'profile-avatars',
+  'profile-avatars',
+  true,
+  8388608,
+  array['image/png','image/jpeg','image/webp','image/gif']
+)
+on conflict (id) do update set
+  public=true,
+  file_size_limit=8388608,
+  allowed_mime_types=array['image/png','image/jpeg','image/webp','image/gif'];

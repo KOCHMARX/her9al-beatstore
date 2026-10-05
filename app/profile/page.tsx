@@ -42,6 +42,7 @@ export default function Profile() {
     });
     const j = await r.json();
     setU(j.user || u);
+    if (r.ok) window.dispatchEvent(new Event('her9al-profile-updated'));
     setMsg(r.ok ? 'Profile saved.' : (j.error || 'Could not save.'));
   };
 
@@ -76,6 +77,7 @@ export default function Profile() {
         if (xhr.status >= 200 && xhr.status < 300) {
           setAvatar(j.url || localPreview);
           setU(j.user || u);
+          window.dispatchEvent(new Event('her9al-profile-updated'));
           setAvatarProgress(100);
           setAvatarMsg('Profile photo uploaded.');
         } else {

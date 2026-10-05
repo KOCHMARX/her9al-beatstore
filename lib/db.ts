@@ -1,26 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
 export function adminDb() {
-  const url =
-    process.env.SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
-
+  const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim().replace(/\/+$/, '');
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
-    console.error('SUPABASE CONFIG MISSING', {
-      hasUrl: !!url,
-      hasKey: !!key,
-    });
-
+    console.error('SUPABASE CONFIG MISSING', { hasUrl: !!url, hasKey: !!key });
     throw new Error('Supabase server configuration is missing');
   }
 
   return createClient(url, key, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 }
 
@@ -42,19 +32,9 @@ export async function upsertOAuthUser(input: {
   avatar?: string | null;
 }) {
   const db = adminDb();
-
-  const ownerEmail = (process.env.OWNER_EMAIL || '')
-    .trim()
-    .toLowerCase();
-
-  const incomingEmail = (input.email || '')
-    .trim()
-    .toLowerCase();
-
-  const role =
-    ownerEmail && incomingEmail === ownerEmail
-      ? 'owner'
-      : 'customer';
+  const ownerEmail = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
+  const incomingEmail = (input.email || '').trim().toLowerCase();
+  const role = ownerEmail && incomingEmail === ownerEmail ? 'owner' : 'customer';
 
   const { data: existing, error: lookupError } = await db
     .from('app_users')
@@ -73,18 +53,9 @@ export async function upsertOAuthUser(input: {
       email: input.email ?? existing.email,
       updated_at: new Date().toISOString(),
     };
-
-    if (!existing.display_name && input.name) {
-      patch.display_name = input.name;
-    }
-
-    if (!existing.avatar_url && input.avatar) {
-      patch.avatar_url = input.avatar;
-    }
-
-    if (role === 'owner' && existing.role !== 'owner') {
-      patch.role = 'owner';
-    }
+    if (!existing.display_name && input.name) patch.display_name = input.name;
+    if (!existing.avatar_url && input.avatar) patch.avatar_url = input.avatar;
+    if (role === 'owner' && existing.role !== 'owner') patch.role = 'owner';
 
     const { data, error } = await db
       .from('app_users')
@@ -97,7 +68,6 @@ export async function upsertOAuthUser(input: {
       console.error('HER9AL USER UPDATE ERROR:', error);
       throw error;
     }
-
     return data as AppUser;
   }
 
@@ -118,6 +88,5 @@ export async function upsertOAuthUser(input: {
     console.error('HER9AL USER INSERT ERROR:', error);
     throw error;
   }
-
   return data as AppUser;
 }

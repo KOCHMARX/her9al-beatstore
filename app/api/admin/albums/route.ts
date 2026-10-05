@@ -1,0 +1,7 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { currentUser, isStaff } from '@/lib/current-user';
+import { adminDb } from '@/lib/db';
+export const runtime = 'nodejs';
+export async function GET(){const u=await currentUser();if(!isStaff(u))return NextResponse.json({error:'forbidden'},{status:403});const db=adminDb();const {data,error}=await db.from('albums').select('*').order('created_at',{ascending:false});if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({albums:data||[]});}
+export async function POST(req:NextRequest){const u=await currentUser();if(!isStaff(u))return NextResponse.json({error:'forbidden'},{status:403});const b=await req.json();const title=String(b.title||'').trim();if(!title)return NextResponse.json({error:'album title required'},{status:400});const db=adminDb();const {data,error}=await db.from('albums').insert({title,cover_url:b.cover_url||null,published:b.published!==false}).select('*').single();if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({album:data});}
+export async function DELETE(req:NextRequest){const u=await currentUser();if(!isStaff(u))return NextResponse.json({error:'forbidden'},{status:403});const id=req.nextUrl.searchParams.get('id');if(!id)return NextResponse.json({error:'id required'},{status:400});const db=adminDb();const {error}=await db.from('albums').delete().eq('id',id);if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({ok:true});}

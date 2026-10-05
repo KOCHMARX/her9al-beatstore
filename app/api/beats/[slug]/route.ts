@@ -1,20 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/db';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
-export async function GET(_req: NextRequest, ctx: { params: Promise<{ slug: string }> }) {
-  const { slug } = await ctx.params;
-  const db = adminDb();
-  const { data, error } = await db
-    .from('beats')
-    .select('id,title,slug,bpm,musical_key,mood,cover_url,preview_url,published,created_at,licenses(id,name,price_cents,file_format,is_exclusive,terms,active)')
-    .eq('slug', slug)
-    .eq('published', true)
-    .maybeSingle();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  return NextResponse.json({ beat: data });
-}
+import { NextRequest,NextResponse } from 'next/server';import { adminDb } from '@/lib/db';
+export const runtime='nodejs';export const dynamic='force-dynamic';
+export async function GET(_req:NextRequest,ctx:{params:Promise<{slug:string}>}){const {slug}=await ctx.params;const db=adminDb();const {data,error}=await db.from('beats').select('id,title,slug,bpm,musical_key,mood,genre,style,description,cover_url,preview_url,published,created_at,album_id,albums(id,title,cover_url),licenses(id,name,price_cents,file_format,is_exclusive,terms,active)').eq('slug',slug).eq('published',true).maybeSingle();if(error)return NextResponse.json({error:error.message},{status:500});if(!data)return NextResponse.json({error:'not_found'},{status:404});return NextResponse.json({beat:data});}

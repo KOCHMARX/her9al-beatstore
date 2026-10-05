@@ -111,3 +111,13 @@ on conflict (id) do update set
   public=true,
   file_size_limit=8388608,
   allowed_mime_types=array['image/png','image/jpeg','image/webp','image/gif'];
+
+-- V7 catalog metadata (safe on new or upgraded projects)
+alter table public.beats add column if not exists genre text;
+alter table public.beats add column if not exists style text;
+alter table public.beats add column if not exists description text;
+create index if not exists beats_genre_idx on public.beats(genre);
+create index if not exists beats_style_idx on public.beats(style);
+create index if not exists beats_album_idx on public.beats(album_id);
+drop policy if exists "public published albums" on public.albums;
+create policy "public published albums" on public.albums for select using (published=true);

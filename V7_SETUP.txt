@@ -1,0 +1,19 @@
+HER9AL V7 — Catalog + Albums
+
+1) Copy this patch over your HER9AL-GITHUB folder.
+2) Supabase -> SQL Editor -> run: supabase/v7_catalog_migration.sql
+3) git add -A
+   git commit -m "HER9AL V7 catalog albums and search"
+   git push origin main
+4) Wait for Vercel Ready, then Ctrl+F5.
+
+What V7 adds:
+- Predefined Genre / Style / Mood lists in Admin (no repetitive typing)
+- Beat bio/description
+- Album/tape creation and album assignment to beats
+- Beat cards show genre/style and album badge
+- Beat details show genre/style/bio/album + waveform-style preview area
+- Professional browse mega-panel inspired by producer marketplaces
+- Search by title, mood, genre, style, album and bio
+- Genre + style filters
+- Wider waveform-like global player visual

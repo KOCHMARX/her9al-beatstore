@@ -107,7 +107,23 @@ export default function Admin() {
       <div className="upload-row"><label className={form.cover_url?'done':''}><Upload size={16}/> Cover<input type="file" accept="image/*" onChange={e=>e.target.files?.[0]&&upload('cover',e.target.files[0])}/></label><label className={form.preview_url?'done':''}><Upload size={16}/> Preview MP3<input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&upload('preview',e.target.files[0])}/></label><label className={form.master_path?'done':''}><Upload size={16}/> Private master<input type="file" accept="audio/*,.zip" onChange={e=>e.target.files?.[0]&&upload('master',e.target.files[0])}/></label></div>
       {uploadState&&<div className="upload-progress-card admin-upload-progress"><div className="upload-progress-top"><span>{uploadState.progress===100?<><CheckCircle2 size={15}/> Uploaded {uploadState.name}</>:<>Uploading {uploadState.name}</>}</span><b>{uploadState.progress}%</b></div><div className="progress-track"><div className="progress-fill" style={{width:`${uploadState.progress}%`}}/></div></div>}
       <label className="check"><input type="checkbox" checked={!!form.published} onChange={e=>setForm({...form,published:e.target.checked})}/> Publish immediately</label>
-      <button className="primary square" onClick={addBeat} disabled={!!busy||!form.title||!form.cover_url||!form.preview_url||!form.master_path||(form.release_type==='album'&&!form.album_id)}>{busy&&!busy.startsWith('Uploading')?busy:(form.release_type==='album'?'Add track to album':'Publish single')}</button>
+      <button
+        className="primary square"
+        onClick={addBeat}
+        disabled={
+          !!busy ||
+          !form.title ||
+          !form.cover_url ||
+          !form.preview_url ||
+          (form.release_type === 'album' && !form.album_id)
+        }
+      >
+        {busy && !busy.startsWith('Uploading')
+          ? busy
+          : form.release_type === 'album'
+            ? 'Add track to album'
+            : 'Publish single'}
+      </button>
       {form.release_type==='album'&&<p className="tiny-note">An album can contain as many beats as you want. Create the album once in the Albums tab, then add each track to it here.</p>}
       {form.release_type==='single'&&<p className="tiny-note">Single beat publishes on its own and is not attached to an album.</p>}
       <p className="tiny-note">Genres, styles and moods are pre-built so the public catalog stays clean and searchable.</p>

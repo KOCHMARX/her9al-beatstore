@@ -36,6 +36,7 @@ export default async function Home() {
           cover={latest?.cover_url || '/her9al-logo.jpg'}
           previewUrl={latest?.preview_url || null}
           beatHref={latest?.slug ? `/beats/${latest.slug}` : null}
+          beatId={latest?.id || null}
         />
       </section>
       <section className="section">

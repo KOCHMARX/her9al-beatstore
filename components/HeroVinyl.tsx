@@ -2,47 +2,46 @@
 
 import Link from 'next/link';
 import { Play, Pause } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { usePlayer } from '@/components/PlayerProvider';
 
 type Props = {
   title?: string;
   cover?: string;
   previewUrl?: string | null;
   beatHref?: string | null;
+  beatId?: string | null;
 };
 
 export default function HeroVinyl({
-  title = 'HER9AL',
+  title = 'HER9AL // LATEST',
   cover = '/her9al-logo.jpg',
   previewUrl,
   beatHref,
+  beatId,
 }: Props) {
-  const [playing, setPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const { activeBeat, playing, playBeat, toggle } = usePlayer();
 
-  useEffect(() => {
-    if (!audioRef.current) return;
-    audioRef.current.pause();
-    audioRef.current.currentTime = 0;
-    setPlaying(false);
-  }, [previewUrl]);
+  // Important: on a hard refresh the global player starts empty,
+  // so the vinyl returns to the HER9AL artwork. Once a beat is played,
+  // its cover becomes the vinyl label until another beat is selected.
+  const shownBeat = activeBeat;
+  const shownCover = shownBeat?.cover_url || '/her9al-logo.jpg';
+  const shownTitle = shownBeat?.title || 'HER9AL // LATEST';
+  const shownHref = shownBeat?.slug ? `/beats/${shownBeat.slug}` : null;
 
-  const toggle = async () => {
-    const audio = audioRef.current;
-    if (!audio || !previewUrl) {
-      setPlaying(v => !v);
+  const toggleHero = async () => {
+    if (activeBeat) {
+      await toggle();
       return;
     }
-    if (playing) {
-      audio.pause();
-      setPlaying(false);
-    } else {
-      try {
-        await audio.play();
-        setPlaying(true);
-      } catch {
-        setPlaying(false);
-      }
+    if (previewUrl && beatId) {
+      await playBeat({
+        id: beatId,
+        slug: beatHref?.split('/').filter(Boolean).pop() || null,
+        title,
+        cover_url: cover,
+        preview_url: previewUrl,
+      });
     }
   };
 
@@ -50,7 +49,7 @@ export default function HeroVinyl({
     <>
       <div className={`vinyl ${playing ? 'is-spinning' : ''}`}>
         <div className="vinyl-rings" />
-        <div className="vinyl-label" style={{ backgroundImage: `url(${cover})` }} />
+        <div className="vinyl-label" style={{ backgroundImage: `url(${shownCover})` }} />
         <div className="vinyl-hole" />
       </div>
       <div className="vinyl-shadow" />
@@ -58,16 +57,15 @@ export default function HeroVinyl({
   );
 
   return (
-    <div className="vinyl-stage" aria-label={`${title} featured beat`}>
-      {beatHref ? <Link href={beatHref} className="vinyl-link">{inner}</Link> : inner}
-      <button className="vinyl-toggle" onClick={toggle} aria-label={playing ? 'Pause preview' : 'Play preview'}>
+    <div className="vinyl-stage" aria-label={`${shownTitle} featured beat`}>
+      {shownHref ? <Link href={shownHref} className="vinyl-link">{inner}</Link> : inner}
+      <button className="vinyl-toggle" onClick={toggleHero} aria-label={playing ? 'Pause preview' : 'Play preview'}>
         {playing ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
       </button>
       <div className="vinyl-caption">
         <span>FEATURED DROP</span>
-        {beatHref ? <Link href={beatHref}><strong>{title}</strong></Link> : <strong>{title}</strong>}
+        {shownHref ? <Link href={shownHref}><strong>{shownTitle}</strong></Link> : <strong>{shownTitle}</strong>}
       </div>
-      {previewUrl && <audio ref={audioRef} src={previewUrl} preload="metadata" onEnded={() => setPlaying(false)} />}
     </div>
   );
 }

@@ -16,7 +16,7 @@ export function adminDb() {
 
 export type AppUser = {
   id: string;
-  provider: 'google' | 'discord';
+  provider: 'google' | 'discord' | 'email';
   provider_user_id: string;
   email: string | null;
   display_name: string | null;
@@ -25,7 +25,7 @@ export type AppUser = {
 };
 
 export async function upsertOAuthUser(input: {
-  provider: 'google' | 'discord';
+  provider: 'google' | 'discord' | 'email';
   providerUserId: string;
   email?: string | null;
   name?: string | null;

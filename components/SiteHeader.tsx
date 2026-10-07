@@ -61,7 +61,7 @@ export default function SiteHeader() {
               </div>
             )}
           </div>
-        ) : <Link className="login-pill" href="/login">Login</Link>}
+        ) : <><Link href="/signup" className="signup-link">Sign up</Link><Link className="login-pill" href="/login">Login</Link></>}
       </div>
     </nav>
   );

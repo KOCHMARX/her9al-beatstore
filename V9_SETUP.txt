@@ -1,0 +1,9 @@
+HER9AL V9 PRO UPGRADE
+
+1. Run supabase/v9_pro_upgrade.sql in Supabase SQL Editor.
+2. Copy project files over HER9AL-GITHUB and push to main.
+3. No new Vercel variables are required.
+4. Email/password login uses the existing AUTH_SECRET session cookie and stores only a scrypt password hash.
+5. Beat files now upload directly from the browser to Supabase using short-lived signed upload URLs, so 20-30 MB WAV masters do not pass through Vercel.
+6. For large files, confirm Supabase Storage global file-size limit is at least 500 MB; bucket migration sets beat-masters to 500 MB.
+7. Real waveform bars are decoded from the actual preview audio in the browser.

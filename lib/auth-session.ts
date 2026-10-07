@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 export type Her9alUser = {
   id: string;
-  provider: 'google' | 'discord';
+  provider: 'google' | 'discord' | 'email';
   email?: string | null;
   name?: string | null;
   avatar?: string | null;

@@ -64,3 +64,23 @@ body{padding-bottom:104px}
 
 @media(max-width:900px){.global-player{grid-template-columns:minmax(150px,1fr) 48px 42px minmax(150px,1.2fr) 42px}.player-volume{display:none}.rappers-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){body{padding-bottom:90px}.global-player{height:80px;grid-template-columns:minmax(0,1fr) 44px 1fr;padding:8px 10px;gap:8px}.global-player-track img{width:48px;height:48px}.global-player-track span,.player-time,.player-volume{display:none}.global-player-play{width:42px;height:42px}.player-wave{height:50px}.rappers-section{margin:0 20px 110px;padding:24px}.rappers-head h2{font-size:34px}.rappers-grid{grid-template-columns:1fr}}
+
+
+/* V9 professional auth + real audio waveform */
+.auth-card-pro{max-width:470px}
+.auth-form{display:grid;gap:14px;width:100%;margin-top:8px}
+.auth-form label{display:grid;gap:7px;text-align:left;font-size:13px;color:#a7a7af}
+.auth-form input{width:100%;border:1px solid #2a2a32;background:#111116;color:#fff;border-radius:14px;padding:13px 14px;outline:none}
+.auth-form input:focus{border-color:#ff1744}
+.auth-divider{display:flex;align-items:center;gap:12px;color:#686872;font-size:11px;margin:4px 0}.auth-divider:before,.auth-divider:after{content:"";height:1px;background:#25252c;flex:1}
+.auth-card small a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.audio-waveform{height:64px;width:100%;display:flex;align-items:center;gap:2px;background:transparent;border:0;padding:0;cursor:pointer;overflow:hidden}
+.audio-waveform i{display:block;flex:1;min-width:1px;max-width:4px;border-radius:2px;background:#777781;opacity:.72;transition:background .12s,opacity .12s}
+.audio-waveform i.played{background:#ff1744;opacity:1}
+.global-waveform{height:48px;min-width:220px}
+.detail-wave-wrap{border:1px solid #2a2a31;border-radius:16px;background:#101014;padding:14px 16px;margin:18px 0}
+.detail-wave-real{height:90px}
+.detail-wave-time{display:flex;justify-content:space-between;color:#a2a2aa;font-size:12px;margin-top:7px}
+@media(max-width:760px){.global-waveform{min-width:100px}.audio-waveform{gap:1px}.player-volume input{display:none}}
+
+.signup-link{color:#b7b7bf;text-decoration:none;font-size:14px}.signup-link:hover{color:#fff}

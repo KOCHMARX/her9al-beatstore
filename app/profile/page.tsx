@@ -38,7 +38,7 @@ export default function Profile() {
     const r = await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ display_name: name, avatar_url: avatar }),
+      body: JSON.stringify({ display_name: name }),
     });
     const j = await r.json();
     setU(j.user || u);
@@ -109,7 +109,7 @@ export default function Profile() {
           <>
             <div className="profile-hero">
               <div className="avatar-editor" onClick={() => inputRef.current?.click()}>
-                <img src={avatar || '/her9al-logo.jpg'} alt="avatar" />
+                <img src={avatar || '/her9al-logo.jpg'} alt="avatar" onError={(e) => { e.currentTarget.src = '/her9al-logo.jpg'; }} />
                 <div className="avatar-overlay"><Camera size={22} /><span>Change</span></div>
               </div>
               <div>

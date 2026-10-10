@@ -1,45 +1,27 @@
-HER9AL V13 — PHOTO LOCKED PRO
+HER9AL V14 — PIXEL-LOCKED
 
-This patch is rebuilt from the user's exact high-resolution FLX4 photo.
+This version uses the user's own screenshot as the exact 1351x630 visual coordinate system.
+The controller, spacing, dock, stage background and top structure come directly from that screenshot.
 
-Visual:
-- same controller photo used as the base
-- no browser slider handles drawn over the controller
-- all click areas are transparent
-- jog and knob sprites are cropped from the exact same photo and rotate in place
-- top deck strips + dual waveform + studio bar + bottom dock
-- actual waveforms are generated from the loaded local audio file
+Third-party branding/demo text is removed/replaced with HER9AL content.
 
-Audio/controls:
-- two decks
-- local MP3/WAV/M4A loading
+Functional:
+- A/B local audio
+- real decoded waveforms
 - play/pause
-- cue + double-click store cue
-- jog seek/scratch
+- cue / store cue
+- jog seek
 - tempo
-- channel volume
+- channel faders
 - crossfader
 - master
 - trim
-- 3-band EQ (low/mid/high)
+- 3-band EQ
 - filter
 - beat sync
-- loop IN / OUT
-- 4-beat loop
-- half/double/exit loop
-- 8 pads per deck
-- hot-cue mode
-- beat-jump mode
-- pad-FX mode
-- sampler mode
-- delay Beat FX + depth
-- tap BPM
-- responsive without fixed-canvas stretching
+- 4 beat loop
+- performance pad hit zones
 
-No SQL migration.
+The whole 1351x630 page scales as one unit, so positions do not drift.
 No global CSS changes.
-
-Install over HER9AL-GITHUB, then:
-git add -A
-git commit -m "HER9AL V13 photo locked pro DJ"
-git push origin main
+No SQL required.

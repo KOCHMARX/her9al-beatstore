@@ -1,17 +1,45 @@
-HER9AL V10.9 — Studio Match Patch
+HER9AL V12 — CLEAN REBUILD
 
-Main fixes:
-- controller desktop size matches the TribeXR reference proportions (~63vw, max 860px)
-- controller image is never stretched/replaced
-- removed all visible fake slider handles
-- removed duplicated jog-wheel image overlays
-- jog interaction is invisible except for a tiny locator line
-- knobs use invisible hit zones with a subtle pointer only
-- top waveform/header structure is much closer to the supplied reference
-- bottom dock/report/branding placement aligned to the reference
-- local MP3/WAV/M4A deck loading
-- real play/pause, cue, tempo, channel volume, master, crossfader, sync and 4-beat loop
-- no global CSS changes
-- no SQL changes
+This is a clean replacement for the /dj page.
 
-Install by copying this patch over HER9AL-GITHUB and pushing to main.
+Visual approach
+- Uses the controller image cropped directly from the user's supplied TribeXR screenshot.
+- Uses the exact 1351×630 page coordinate system from that screenshot.
+- JavaScript scales the entire stage as one unit, so controls do not drift on different screens.
+- Jog wheels and knob sprites are cropped from the same controller image.
+- Native range controls are fully invisible so no fake white handles appear.
+- TribeXR branding is replaced with HER9AL branding.
+
+Functional controls included
+- Deck A / Deck B local audio loading
+- Play / pause
+- Cue and stored cue
+- Jog seek/scratch
+- Tempo
+- Channel faders
+- Crossfader
+- Master output
+- Trim
+- High / Mid / Low EQ using Web Audio API
+- Filter using Web Audio API
+- Beat sync
+- Loop IN / OUT
+- 4-beat loop
+- Loop half / double / exit
+- 8 pads per deck
+- Hot Cue pad mode
+- Beat Jump pad mode
+- Pad FX pulse mode
+- Echo Beat FX on/off + depth
+
+No global CSS changes.
+No SQL migration required.
+
+Install:
+Copy the ZIP contents over:
+C:\Users\user\Downloads\HER9AL-GITHUB
+
+Then:
+git add -A
+git commit -m "HER9AL V12 clean DJ rebuild"
+git push origin main

@@ -1,0 +1,14 @@
+HER9AL V10.3 — reference-matched DJ studio
+
+Copy/replace these files into HER9AL-GITHUB:
+- components/DJStudio.tsx
+- app/dj/page.tsx
+- app/globals.css
+- public/ddj-flx4-reference.png
+
+No SQL migration is required if V10 DJ tables already exist.
+
+Then:
+git add -A
+git commit -m "HER9AL V10.3 reference matched FLX4 studio"
+git push origin main

@@ -116,52 +116,75 @@ export default function DJStudio(){
 
   if(!ready)return <div className="dj-loading">Loading DJ Studio…</div>;
 
-  return <section className="tribe-studio">
+  return <section className="refdj-studio">
     <audio ref={audioA} crossOrigin="anonymous"/><audio ref={audioB} crossOrigin="anonymous"/>
 
-    <div className="tribe-topbar"><div className="tribe-brand">HER9AL <span>DJ STUDIO</span></div><div className="tribe-live">● LIVE MIX MODE</div></div>
-
-    <div className="tribe-wave-row">
-      <div className="tribe-wave-deck">
-        <div className="tribe-track-meta"><b>{a.track?.title||'DECK A'}</b><span>{a.track?.artist||'Load a track'}</span><em>{fmt(a.current)} / {fmt(a.duration)}</em></div>
+    <header className="refdj-wave-header">
+      <div className="refdj-side-deck refdj-side-a">
+        <div className="refdj-side-copy">
+          <b>{a.track?.title||'Deck A'}</b>
+          <span>{a.track?.artist||'Load a track'}</span>
+        </div>
+        <div className="refdj-side-stats"><strong>{Math.round(a.bpm*(1+a.tempo/100))}</strong><small>BPM</small><em>-{fmt(a.duration-a.current)}</em></div>
         <Wave audio={audioA.current} deck={a} onSeek={r=>seek('A',r)}/>
       </div>
-      <div className="tribe-wave-deck">
-        <div className="tribe-track-meta"><b>{b.track?.title||'DECK B'}</b><span>{b.track?.artist||'Load a track'}</span><em>{fmt(b.current)} / {fmt(b.duration)}</em></div>
+
+      <div className="refdj-center-wave">
+        <div className="refdj-center-line"><Wave audio={audioA.current} deck={a} onSeek={r=>seek('A',r)}/></div>
+        <div className="refdj-center-line"><Wave audio={audioB.current} deck={b} onSeek={r=>seek('B',r)}/></div>
+        <div className="refdj-beat-grid">{Array.from({length:11}).map((_,i)=><i key={i}/>)}</div>
+      </div>
+
+      <div className="refdj-side-deck refdj-side-b">
+        <div className="refdj-side-copy">
+          <b>{b.track?.title||'Deck B'}</b>
+          <span>{b.track?.artist||'Load a track'}</span>
+        </div>
+        <div className="refdj-side-stats"><strong>{Math.round(b.bpm*(1+b.tempo/100))}</strong><small>BPM</small><em>-{fmt(b.duration-b.current)}</em></div>
         <Wave audio={audioB.current} deck={b} onSeek={r=>seek('B',r)}/>
       </div>
+    </header>
+
+    <nav className="refdj-nav">
+      <button className="refdj-back" onClick={()=>history.back()}>← HER9AL</button>
+      <b>STUDIO</b>
+      <div className="refdj-account"><a href="/profile">Account</a><a href="/">⌂</a></div>
+    </nav>
+
+    <main className="refdj-stage">
+      <div className="refdj-controller-wrap">
+        <img className="refdj-controller" src="/ddj-flx4-reference.png" alt="DDJ-FLX4 style controller"/>
+
+        <button className="refdj-hotspot ref-play-a" aria-label="Play pause deck A" onClick={()=>toggle('A')}>{a.playing?<Pause/>:<Play/>}</button>
+        <button className="refdj-hotspot ref-cue-a" aria-label="Cue deck A" onClick={()=>cue('A')} onDoubleClick={()=>setCue('A')}>CUE</button>
+        <button className="refdj-hotspot ref-sync-a" aria-label="Sync deck A" onClick={()=>sync('A')}>SYNC</button>
+        <button className="refdj-hotspot ref-loop-a" aria-label="4 beat loop deck A" onClick={()=>fourBeat('A')}>4</button>
+        <label className="refdj-hotspot ref-load-a" aria-label="Load deck A"><Upload/><input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&local('A',e.target.files[0])}/></label>
+
+        <button className="refdj-hotspot ref-play-b" aria-label="Play pause deck B" onClick={()=>toggle('B')}>{b.playing?<Pause/>:<Play/>}</button>
+        <button className="refdj-hotspot ref-cue-b" aria-label="Cue deck B" onClick={()=>cue('B')} onDoubleClick={()=>setCue('B')}>CUE</button>
+        <button className="refdj-hotspot ref-sync-b" aria-label="Sync deck B" onClick={()=>sync('B')}>SYNC</button>
+        <button className="refdj-hotspot ref-loop-b" aria-label="4 beat loop deck B" onClick={()=>fourBeat('B')}>4</button>
+        <label className="refdj-hotspot ref-load-b" aria-label="Load deck B"><Upload/><input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&local('B',e.target.files[0])}/></label>
+
+        <input className="refdj-slider ref-tempo-a" title="Tempo A" type="range" min="-16" max="16" step=".1" value={a.tempo} onChange={e=>setA(x=>({...x,tempo:Number(e.target.value)}))}/>
+        <input className="refdj-slider ref-tempo-b" title="Tempo B" type="range" min="-16" max="16" step=".1" value={b.tempo} onChange={e=>setB(x=>({...x,tempo:Number(e.target.value)}))}/>
+        <input className="refdj-slider ref-ch-a" title="Channel A" type="range" min="0" max="1" step=".01" value={volA} onChange={e=>setVolA(Number(e.target.value))}/>
+        <input className="refdj-slider ref-ch-b" title="Channel B" type="range" min="0" max="1" step=".01" value={volB} onChange={e=>setVolB(Number(e.target.value))}/>
+        <input className="refdj-slider ref-cross" title="Crossfader" type="range" min="-1" max="1" step=".01" value={cross} onChange={e=>setCross(Number(e.target.value))}/>
+        <input className="refdj-slider ref-master" title="Master" type="range" min="0" max="1" step=".01" value={master} onChange={e=>setMaster(Number(e.target.value))}/>
+      </div>
+    </main>
+
+    <div className="refdj-dock">
+      <button className={drawer==='library'?'active':''} onClick={()=>setDrawer(drawer==='library'?null:'library')}>♫ Music Library</button>
+      <button className="refdj-device">◉ DDJ-FLX4</button>
+      <button className={drawer==='settings'?'active':''} onClick={()=>setDrawer(drawer==='settings'?null:'settings')}>☷ Settings</button>
     </div>
 
-    <div className="tribe-controller-wrap">
-      <img className="tribe-controller" src="/ddj-flx4-reference.png" alt="DJ controller"/>
-      <button className="tribe-hotspot hs-play-a" title="Play/Pause A" onClick={()=>toggle('A')}>{a.playing?<Pause/>:<Play/>}</button>
-      <button className="tribe-hotspot hs-cue-a" title="Cue A" onClick={()=>cue('A')} onDoubleClick={()=>setCue('A')}>CUE</button>
-      <button className="tribe-hotspot hs-sync-a" title="Beat Sync A" onClick={()=>sync('A')}>SYNC</button>
-      <button className="tribe-hotspot hs-loop-a" title="4 Beat Loop A" onClick={()=>fourBeat('A')}>4</button>
-      <label className="tribe-hotspot hs-load-a" title="Load local file to Deck A"><Upload/><input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&local('A',e.target.files[0])}/></label>
+    <div className="refdj-corner-brand">HER9AL <span>Web DJ</span></div>
 
-      <button className="tribe-hotspot hs-play-b" title="Play/Pause B" onClick={()=>toggle('B')}>{b.playing?<Pause/>:<Play/>}</button>
-      <button className="tribe-hotspot hs-cue-b" title="Cue B" onClick={()=>cue('B')} onDoubleClick={()=>setCue('B')}>CUE</button>
-      <button className="tribe-hotspot hs-sync-b" title="Beat Sync B" onClick={()=>sync('B')}>SYNC</button>
-      <button className="tribe-hotspot hs-loop-b" title="4 Beat Loop B" onClick={()=>fourBeat('B')}>4</button>
-      <label className="tribe-hotspot hs-load-b" title="Load local file to Deck B"><Upload/><input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&local('B',e.target.files[0])}/></label>
-
-      <input className="tribe-overlay-slider s-tempo-a" title="Tempo A" type="range" min="-16" max="16" step=".1" value={a.tempo} onChange={e=>setA(x=>({...x,tempo:Number(e.target.value)}))}/>
-      <input className="tribe-overlay-slider s-tempo-b" title="Tempo B" type="range" min="-16" max="16" step=".1" value={b.tempo} onChange={e=>setB(x=>({...x,tempo:Number(e.target.value)}))}/>
-      <input className="tribe-overlay-slider s-ch-a" title="Channel A" type="range" min="0" max="1" step=".01" value={volA} onChange={e=>setVolA(Number(e.target.value))}/>
-      <input className="tribe-overlay-slider s-ch-b" title="Channel B" type="range" min="0" max="1" step=".01" value={volB} onChange={e=>setVolB(Number(e.target.value))}/>
-      <input className="tribe-overlay-slider s-cross" title="Crossfader" type="range" min="-1" max="1" step=".01" value={cross} onChange={e=>setCross(Number(e.target.value))}/>
-      <input className="tribe-overlay-slider s-master" title="Master volume" type="range" min="0" max="1" step=".01" value={master} onChange={e=>setMaster(Number(e.target.value))}/>
-    </div>
-
-    <div className="tribe-dock">
-      <button className={drawer==='library'?'active':''} onClick={()=>setDrawer(drawer==='library'?null:'library')}><FolderOpen/>Music Library</button>
-      <button className="deck-pill">DDJ-FLX4</button>
-      <button className={drawer==='settings'?'active':''} onClick={()=>setDrawer(drawer==='settings'?null:'settings')}><Settings/>Settings</button>
-      <div className="tribe-master-mini"><Volume2/><input type="range" min="0" max="1" step=".01" value={master} onChange={e=>setMaster(Number(e.target.value))}/></div>
-    </div>
-
-    {drawer&&<div className="tribe-drawer">
+    {drawer&&<div className="refdj-drawer">
       <div className="tribe-drawer-head"><b>{drawer==='library'?'Music Library':'Studio Settings'}</b><button onClick={()=>setDrawer(null)}><X/></button></div>
       {drawer==='library'?<>
         <label className="tribe-search"><Search/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search HER9AL tracks…"/></label>
@@ -170,7 +193,7 @@ export default function DJStudio(){
         <label>Master<input type="range" min="0" max="1" step=".01" value={master} onChange={e=>setMaster(Number(e.target.value))}/></label>
         <label>Deck A volume<input type="range" min="0" max="1" step=".01" value={volA} onChange={e=>setVolA(Number(e.target.value))}/></label>
         <label>Deck B volume<input type="range" min="0" max="1" step=".01" value={volB} onChange={e=>setVolB(Number(e.target.value))}/></label>
-        <div className="tribe-settings-note"><SlidersHorizontal/> Double-click CUE to set a cue point. Use LOAD hotspots or the library to load tracks.</div>
+        <div className="tribe-settings-note"><SlidersHorizontal/> Double-click CUE to set a cue point. LOAD accepts local audio files.</div>
       </div>}
     </div>}
   </section>;

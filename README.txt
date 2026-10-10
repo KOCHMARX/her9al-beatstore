@@ -1,45 +1,45 @@
-HER9AL V12 — CLEAN REBUILD
+HER9AL V13 — PHOTO LOCKED PRO
 
-This is a clean replacement for the /dj page.
+This patch is rebuilt from the user's exact high-resolution FLX4 photo.
 
-Visual approach
-- Uses the controller image cropped directly from the user's supplied TribeXR screenshot.
-- Uses the exact 1351×630 page coordinate system from that screenshot.
-- JavaScript scales the entire stage as one unit, so controls do not drift on different screens.
-- Jog wheels and knob sprites are cropped from the same controller image.
-- Native range controls are fully invisible so no fake white handles appear.
-- TribeXR branding is replaced with HER9AL branding.
+Visual:
+- same controller photo used as the base
+- no browser slider handles drawn over the controller
+- all click areas are transparent
+- jog and knob sprites are cropped from the exact same photo and rotate in place
+- top deck strips + dual waveform + studio bar + bottom dock
+- actual waveforms are generated from the loaded local audio file
 
-Functional controls included
-- Deck A / Deck B local audio loading
-- Play / pause
-- Cue and stored cue
-- Jog seek/scratch
-- Tempo
-- Channel faders
-- Crossfader
-- Master output
-- Trim
-- High / Mid / Low EQ using Web Audio API
-- Filter using Web Audio API
-- Beat sync
-- Loop IN / OUT
+Audio/controls:
+- two decks
+- local MP3/WAV/M4A loading
+- play/pause
+- cue + double-click store cue
+- jog seek/scratch
+- tempo
+- channel volume
+- crossfader
+- master
+- trim
+- 3-band EQ (low/mid/high)
+- filter
+- beat sync
+- loop IN / OUT
 - 4-beat loop
-- Loop half / double / exit
+- half/double/exit loop
 - 8 pads per deck
-- Hot Cue pad mode
-- Beat Jump pad mode
-- Pad FX pulse mode
-- Echo Beat FX on/off + depth
+- hot-cue mode
+- beat-jump mode
+- pad-FX mode
+- sampler mode
+- delay Beat FX + depth
+- tap BPM
+- responsive without fixed-canvas stretching
 
+No SQL migration.
 No global CSS changes.
-No SQL migration required.
 
-Install:
-Copy the ZIP contents over:
-C:\Users\user\Downloads\HER9AL-GITHUB
-
-Then:
+Install over HER9AL-GITHUB, then:
 git add -A
-git commit -m "HER9AL V12 clean DJ rebuild"
+git commit -m "HER9AL V13 photo locked pro DJ"
 git push origin main

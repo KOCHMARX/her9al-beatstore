@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   title: 'HER9AL — Beats & Music',
   description: 'Official HER9AL beat store and artist profile.',
   icons: {
-    icon: '/icon.png',
-    shortcut: '/icon.png',
-    apple: '/icon.png',
+    icon: '/her9al-logo.jpg',
+    shortcut: '/her9al-logo.jpg',
+    apple: '/her9al-logo.jpg',
   },
 };
 

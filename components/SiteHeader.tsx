@@ -44,6 +44,7 @@ export default function SiteHeader() {
       <Link href="/" className="brand"><img src="/her9al-logo.jpg" alt="HER9AL" /><span>HER9AL</span></Link>
       <div className="navlinks">
         <Link href="/beats">Beats</Link>
+        <Link href="/dj">DJ Studio</Link>
         <Link href="/#rappers">Rappers</Link>
         {user ? (
           <div className="profile-menu" ref={ref}>

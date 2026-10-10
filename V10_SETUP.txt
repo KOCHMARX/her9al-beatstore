@@ -1,0 +1,23 @@
+HER9AL V10 — DJ STUDIO
+
+1) Copy the V10 project/patch over your existing HER9AL-GITHUB folder.
+2) Supabase > SQL Editor: run supabase/v10_dj_upgrade.sql once.
+3) Push to GitHub:
+   git add -A
+   git commit -m "HER9AL V10 DJ Studio"
+   git push origin main
+4) Wait for Vercel Ready, then Ctrl+F5.
+
+DJ Studio:
+- /dj is account-only.
+- Library combines published HER9AL beats + admin DJ tracks.
+- Local audio can be loaded directly from the user's device.
+- SoundCloud public URLs use the official embedded player.
+- Full web deck controls (tempo, EQ, filter, loops, cues, hot cues, crossfader) apply to HER9AL/admin/local audio.
+
+Admin DJ tracks:
+- /admin/dj
+- Upload DJ audio and cover, set title/artist/BPM, or add a public SoundCloud URL.
+- Uploaded DJ audio reuses the public preview storage workflow.
+
+No new Vercel environment variables are required.

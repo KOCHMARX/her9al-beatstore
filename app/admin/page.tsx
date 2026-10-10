@@ -1,6 +1,7 @@
 'use client';
 
 import SiteHeader from '@/components/SiteHeader';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Disc3, Plus, Trash2, Upload } from 'lucide-react';
 import { GENRES, MOODS, STYLES } from '@/lib/catalog';
@@ -106,6 +107,7 @@ export default function Admin() {
       <button className={tab==='beats'?'active':''} onClick={()=>setTab('beats')}>Beats</button>
       <button className={tab==='albums'?'active':''} onClick={()=>setTab('albums')}>Albums</button>
       <button className={tab==='users'?'active':''} onClick={()=>setTab('users')}>Users & roles</button>
+      <Link className="admin-dj-link" href="/admin/dj">DJ Library</Link>
     </div></div>
 
     {tab==='beats'&&<div className="admin-grid"><div className="panel add-beat"><h2><Plus size={19}/> Add a beat</h2>

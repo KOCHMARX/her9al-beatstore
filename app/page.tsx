@@ -44,6 +44,16 @@ export default async function Home() {
         <div className="section-head"><div><span>FEATURED</span><h2>Latest drops</h2></div><Link href="/beats">View all</Link></div>
         <BeatGrid compact />
       </section>
+      <section className="dj-home-section">
+        <div className="dj-home-copy">
+          <span>ACCOUNT-ONLY EXPERIENCE</span>
+          <h2>HER9AL DJ Studio.</h2>
+          <p>Mix two tracks in your browser with dual decks, cue points, loops, tempo, EQ, filter, hot cues and a real crossfader. Load HER9AL beats, admin-curated DJ tracks, local audio, or use a SoundCloud embed source.</p>
+          <div className="dj-home-actions"><Link className="primary" href="/dj">Open DJ Studio</Link><Link className="secondary" href="/signup">Create account</Link></div>
+          <div className="dj-control-chips"><span>PLAY / CUE</span><span>JOG</span><span>LOOPS</span><span>BEAT SYNC</span><span>EQ / CFX</span><span>HOT CUES</span><span>CROSSFADER</span></div>
+        </div>
+        <div className="dj-home-image"><img src="/dj-controller-reference.png" alt="DJ controller reference"/><div><b>Web DJ controller</b><span>Inspired by a familiar 2-channel DJ workflow, rebuilt for HER9AL.</span></div></div>
+      </section>
       <section id="rappers" className="rappers-section">
         <div className="rappers-head">
           <span>COLLABORATIONS</span>

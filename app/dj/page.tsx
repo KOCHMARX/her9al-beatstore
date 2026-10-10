@@ -3,249 +3,564 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './dj.module.css';
 
-type DeckId = 'A'|'B';
+type DeckId = 'A' | 'B';
+
 type Deck = {
-  url:string; title:string; artist:string; bpm:number; playing:boolean;
-  time:number; duration:number; cue:number; rate:number; channel:number;
-  loopIn:number|null; loopOut:number|null;
+  url: string;
+  title: string;
+  artist: string;
+  bpm: number;
+  playing: boolean;
+  time: number;
+  duration: number;
+  cue: number;
+  rate: number;
+  volume: number;
+  loopIn: number | null;
+  loopOut: number | null;
 };
 
-const fresh=():Deck=>({
-  url:'',title:'NO TRACK LOADED',artist:'HER9AL',bpm:126,playing:false,
-  time:0,duration:0,cue:0,rate:1,channel:.92,loopIn:null,loopOut:null
+const initialDeck = (): Deck => ({
+  url: '',
+  title: 'NO TRACK LOADED',
+  artist: 'HER9AL',
+  bpm: 126,
+  playing: false,
+  time: 0,
+  duration: 0,
+  cue: 0,
+  rate: 1,
+  volume: 0.92,
+  loopIn: null,
+  loopOut: null,
 });
 
-function fmt(v:number){
-  if(!Number.isFinite(v))return '00:00';
-  const m=Math.floor(v/60),s=Math.floor(v%60);
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+function formatTime(value: number) {
+  if (!Number.isFinite(value)) return '00:00';
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60);
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-export default function DJStudio(){
-  const aRef=useRef<HTMLAudioElement>(null);
-  const bRef=useRef<HTMLAudioElement>(null);
-  const [A,setA]=useState<Deck>(fresh());
-  const [B,setB]=useState<Deck>(fresh());
-  const [cross,setCross]=useState(0);
-  const [master,setMaster]=useState(.95);
-  const [library,setLibrary]=useState(false);
-  const [settings,setSettings]=useState(false);
-  const [lit,setLit]=useState<Record<string,boolean>>({});
-  const [jogA,setJogA]=useState(0);
-  const [jogB,setJogB]=useState(0);
-  const [knobs,setKnobs]=useState<Record<string,number>>({
-    trimA:0,hiA:0,midA:0,lowA:0,filterA:0,
-    trimB:0,hiB:0,midB:0,lowB:0,filterB:0,
-    master:0,fx:0
+export default function DJStudio() {
+  const audioA = useRef<HTMLAudioElement>(null);
+  const audioB = useRef<HTMLAudioElement>(null);
+
+  const [A, setA] = useState<Deck>(initialDeck());
+  const [B, setB] = useState<Deck>(initialDeck());
+  const [crossfader, setCrossfader] = useState(0);
+  const [master, setMaster] = useState(0.95);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [active, setActive] = useState<Record<string, boolean>>({});
+  const [jogA, setJogA] = useState(0);
+  const [jogB, setJogB] = useState(0);
+
+  const [knobs, setKnobs] = useState<Record<string, number>>({
+    trimA: 0, hiA: 0, midA: 0, lowA: 0, filterA: 0,
+    trimB: 0, hiB: 0, midB: 0, lowB: 0, filterB: 0,
+    master: 0, fx: 0,
   });
 
-  const el=(d:DeckId)=>d==='A'?aRef.current:bRef.current;
-  const deck=(d:DeckId)=>d==='A'?A:B;
-  const patch=(d:DeckId,p:Partial<Deck>)=>d==='A'?setA(v=>({...v,...p})):setB(v=>({...v,...p}));
+  const audioFor = (deck: DeckId) => deck === 'A' ? audioA.current : audioB.current;
+  const stateFor = (deck: DeckId) => deck === 'A' ? A : B;
 
-  const flash=(id:string,ms=170)=>{
-    setLit(v=>({...v,[id]:true}));
-    setTimeout(()=>setLit(v=>({...v,[id]:false})),ms);
-  };
-
-  const gains=useMemo(()=>({
-    a:Math.max(0,Math.min(1,master*A.channel*(cross<=0?1:1-cross))),
-    b:Math.max(0,Math.min(1,master*B.channel*(cross>=0?1:1+cross)))
-  }),[master,A.channel,B.channel,cross]);
-
-  useEffect(()=>{if(aRef.current)aRef.current.volume=gains.a},[gains.a]);
-  useEffect(()=>{if(bRef.current)bRef.current.volume=gains.b},[gains.b]);
-  useEffect(()=>{if(aRef.current)aRef.current.playbackRate=A.rate},[A.rate]);
-  useEffect(()=>{if(bRef.current)bRef.current.playbackRate=B.rate},[B.rate]);
-
-  const loadFile=(d:DeckId,file:File)=>{
-    const url=URL.createObjectURL(file);
-    patch(d,{url,title:file.name,artist:'Local file',playing:false,time:0,duration:0,cue:0,rate:1,loopIn:null,loopOut:null});
-    setLibrary(false);
-    setTimeout(()=>el(d)?.load(),0);
+  const patch = (deck: DeckId, next: Partial<Deck>) => {
+    if (deck === 'A') setA(previous => ({ ...previous, ...next }));
+    else setB(previous => ({ ...previous, ...next }));
   };
 
-  const playPause=async(d:DeckId)=>{
-    const a=el(d); if(!a||!deck(d).url)return;
-    flash(`play${d}`,240);
-    if(a.paused){await a.play();patch(d,{playing:true})}
-    else{a.pause();patch(d,{playing:false})}
+  const pulse = (id: string, duration = 160) => {
+    setActive(previous => ({ ...previous, [id]: true }));
+    window.setTimeout(() => {
+      setActive(previous => ({ ...previous, [id]: false }));
+    }, duration);
   };
 
-  const cue=(d:DeckId)=>{
-    const a=el(d);if(!a)return;
-    a.pause();a.currentTime=deck(d).cue;patch(d,{playing:false});flash(`cue${d}`,250)
-  };
-  const setCue=(d:DeckId)=>{
-    const a=el(d);if(!a)return;
-    patch(d,{cue:a.currentTime});flash(`cue${d}`,450)
-  };
-  const sync=(d:DeckId)=>{
-    const target=(d==='A'?B:A).bpm||126;
-    patch(d,{bpm:target,rate:target/126});flash(`sync${d}`,300)
-  };
-  const loop4=(d:DeckId)=>{
-    const a=el(d);if(!a)return;
-    const len=4*60/(deck(d).bpm||126);
-    patch(d,{loopIn:a.currentTime,loopOut:a.currentTime+len});flash(`loop${d}`,300)
-  };
-  const onTime=(d:DeckId)=>{
-    const a=el(d);if(!a)return;
-    const s=deck(d);
-    if(s.loopIn!==null&&s.loopOut!==null&&a.currentTime>=s.loopOut)a.currentTime=s.loopIn;
-    patch(d,{time:a.currentTime,duration:a.duration||0})
-  };
+  const gains = useMemo(() => {
+    const left = crossfader <= 0 ? 1 : 1 - crossfader;
+    const right = crossfader >= 0 ? 1 : 1 + crossfader;
 
-  const jogDrag=(d:DeckId)=>(e:React.PointerEvent<HTMLDivElement>)=>{
-    e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);
-    let px=e.clientX;
-    const move=(ev:PointerEvent)=>{
-      const dx=ev.clientX-px;px=ev.clientX;
-      const a=el(d);
-      if(a&&Number.isFinite(a.duration))a.currentTime=Math.max(0,Math.min(a.duration,a.currentTime+dx*.032));
-      d==='A'?setJogA(v=>v+dx):setJogB(v=>v+dx);
+    return {
+      A: Math.max(0, Math.min(1, master * A.volume * left)),
+      B: Math.max(0, Math.min(1, master * B.volume * right)),
     };
-    const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up)};
-    window.addEventListener('pointermove',move);window.addEventListener('pointerup',up)
+  }, [A.volume, B.volume, crossfader, master]);
+
+  useEffect(() => {
+    if (audioA.current) audioA.current.volume = gains.A;
+  }, [gains.A]);
+
+  useEffect(() => {
+    if (audioB.current) audioB.current.volume = gains.B;
+  }, [gains.B]);
+
+  useEffect(() => {
+    if (audioA.current) audioA.current.playbackRate = A.rate;
+  }, [A.rate]);
+
+  useEffect(() => {
+    if (audioB.current) audioB.current.playbackRate = B.rate;
+  }, [B.rate]);
+
+  const loadLocal = (deck: DeckId, file: File) => {
+    const url = URL.createObjectURL(file);
+    patch(deck, {
+      url,
+      title: file.name,
+      artist: 'Local file',
+      playing: false,
+      time: 0,
+      duration: 0,
+      cue: 0,
+      rate: 1,
+      loopIn: null,
+      loopOut: null,
+    });
+    setLibraryOpen(false);
+    window.setTimeout(() => audioFor(deck)?.load(), 0);
   };
 
-  const knobDrag=(id:string)=>(e:React.PointerEvent<HTMLDivElement>)=>{
-    e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);
-    const sy=e.clientY,start=knobs[id]||0;
-    const move=(ev:PointerEvent)=>{
-      const n=Math.max(-135,Math.min(135,start+(sy-ev.clientY)*1.2));
-      setKnobs(v=>({...v,[id]:n}));
-      if(id==='master')setMaster((n+135)/270)
+  const playPause = async (deck: DeckId) => {
+    const audio = audioFor(deck);
+    if (!audio || !stateFor(deck).url) return;
+
+    pulse(`play${deck}`, 220);
+
+    if (audio.paused) {
+      await audio.play();
+      patch(deck, { playing: true });
+    } else {
+      audio.pause();
+      patch(deck, { playing: false });
+    }
+  };
+
+  const cue = (deck: DeckId) => {
+    const audio = audioFor(deck);
+    if (!audio) return;
+
+    audio.pause();
+    audio.currentTime = stateFor(deck).cue;
+    patch(deck, { playing: false });
+    pulse(`cue${deck}`, 220);
+  };
+
+  const storeCue = (deck: DeckId) => {
+    const audio = audioFor(deck);
+    if (!audio) return;
+    patch(deck, { cue: audio.currentTime });
+    pulse(`cue${deck}`, 420);
+  };
+
+  const sync = (deck: DeckId) => {
+    const other = deck === 'A' ? B : A;
+    const bpm = other.bpm || 126;
+    patch(deck, { bpm, rate: bpm / 126 });
+    pulse(`sync${deck}`, 260);
+  };
+
+  const loopFour = (deck: DeckId) => {
+    const audio = audioFor(deck);
+    if (!audio) return;
+
+    const bpm = stateFor(deck).bpm || 126;
+    const length = (4 * 60) / bpm;
+
+    patch(deck, {
+      loopIn: audio.currentTime,
+      loopOut: audio.currentTime + length,
+    });
+
+    pulse(`loop${deck}`, 280);
+  };
+
+  const timeUpdate = (deck: DeckId) => {
+    const audio = audioFor(deck);
+    if (!audio) return;
+
+    const current = stateFor(deck);
+
+    if (
+      current.loopIn !== null &&
+      current.loopOut !== null &&
+      audio.currentTime >= current.loopOut
+    ) {
+      audio.currentTime = current.loopIn;
+    }
+
+    patch(deck, {
+      time: audio.currentTime,
+      duration: audio.duration || 0,
+    });
+  };
+
+  const dragJog = (deck: DeckId) => (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    let previousX = event.clientX;
+
+    const move = (pointerEvent: PointerEvent) => {
+      const delta = pointerEvent.clientX - previousX;
+      previousX = pointerEvent.clientX;
+
+      const audio = audioFor(deck);
+      if (audio && Number.isFinite(audio.duration)) {
+        audio.currentTime = Math.max(
+          0,
+          Math.min(audio.duration, audio.currentTime + delta * 0.03)
+        );
+      }
+
+      if (deck === 'A') setJogA(value => value + delta);
+      else setJogB(value => value + delta);
     };
-    const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up)};
-    window.addEventListener('pointermove',move);window.addEventListener('pointerup',up)
+
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
   };
 
-  const Hit=({id,x,y,w,h,onClick,round=false}:{id:string,x:number,y:number,w:number,h:number,onClick:()=>void,round?:boolean})=>
+  const dragKnob = (id: string) => (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    const startY = event.clientY;
+    const start = knobs[id] || 0;
+
+    const move = (pointerEvent: PointerEvent) => {
+      const angle = Math.max(
+        -135,
+        Math.min(135, start + (startY - pointerEvent.clientY) * 1.15)
+      );
+
+      setKnobs(previous => ({ ...previous, [id]: angle }));
+
+      if (id === 'master') {
+        setMaster((angle + 135) / 270);
+      }
+    };
+
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  const Hotspot = ({
+    id, x, y, width, height, onClick, round = false,
+  }: {
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    onClick: () => void;
+    round?: boolean;
+  }) => (
     <button
-      className={`${styles.hit} ${round?styles.round:''} ${lit[id]?styles.lit:''}`}
-      style={{left:`${x}%`,top:`${y}%`,width:`${w}%`,height:`${h}%`}}
+      className={`${styles.hotspot} ${round ? styles.round : ''} ${active[id] ? styles.active : ''}`}
+      style={{
+        left: `${x}%`,
+        top: `${y}%`,
+        width: `${width}%`,
+        height: `${height}%`,
+      }}
       onClick={onClick}
       aria-label={id}
-    />;
+    />
+  );
 
-  const Knob=({id,x,y,s=4}:{id:string,x:number,y:number,s?:number})=>
-    <div className={styles.knobHit} style={{left:`${x}%`,top:`${y}%`,width:`${s}%`}} onPointerDown={knobDrag(id)}>
-      <i style={{transform:`translateX(-50%) rotate(${knobs[id]||0}deg)`}}/>
-    </div>;
-
-  return <main className={styles.page}>
-    <audio ref={aRef} src={A.url} onTimeUpdate={()=>onTime('A')} onEnded={()=>patch('A',{playing:false})}/>
-    <audio ref={bRef} src={B.url} onTimeUpdate={()=>onTime('B')} onEnded={()=>patch('B',{playing:false})}/>
-
-    <header className={styles.waveTop}>
-      <div className={styles.deckInfo}>
-        <strong>{A.title}</strong><span>{A.artist}</span>
-        <div><b>{A.bpm}</b> BPM <em>{fmt(A.time)} / {fmt(A.duration)}</em></div>
-        <div className={styles.miniWave}/>
-      </div>
-      <div className={styles.centerWave}>
-        <div className={styles.waveLine}/>
-        <div className={styles.waveLine2}/>
-        <div className={styles.playhead}/>
-      </div>
-      <div className={`${styles.deckInfo} ${styles.right}`}>
-        <strong>{B.title}</strong><span>{B.artist}</span>
-        <div><b>{B.bpm}</b> BPM <em>{fmt(B.time)} / {fmt(B.duration)}</em></div>
-        <div className={styles.miniWave}/>
-      </div>
-    </header>
-
-    <div className={styles.studioBar}>
-      <button onClick={()=>history.back()}>← Learning Dojo</button>
-      <b>STUDIO</b>
-      <span>HER9AL Web DJ</span>
+  const Knob = ({
+    id, x, y, size = 4,
+  }: {
+    id: string;
+    x: number;
+    y: number;
+    size?: number;
+  }) => (
+    <div
+      className={styles.knob}
+      onPointerDown={dragKnob(id)}
+      style={{
+        left: `${x}%`,
+        top: `${y}%`,
+        width: `${size}%`,
+      }}
+      aria-label={id}
+    >
+      <i style={{ transform: `translateX(-50%) rotate(${knobs[id] || 0}deg)` }} />
     </div>
+  );
 
-    <section className={styles.stage}>
-      <div className={styles.controller}>
-        <img className={styles.base} src="/ddj-flx4-pro.png" alt="DDJ-FLX4"/>
+  return (
+    <main className={styles.page}>
+      <audio
+        ref={audioA}
+        src={A.url}
+        onTimeUpdate={() => timeUpdate('A')}
+        onEnded={() => patch('A', { playing: false })}
+      />
+      <audio
+        ref={audioB}
+        src={B.url}
+        onTimeUpdate={() => timeUpdate('B')}
+        onEnded={() => patch('B', { playing: false })}
+      />
 
-        <div className={`${styles.jog} ${A.playing?styles.spin:''}`} style={{left:'3.3%',top:'17.2%',transform:`rotate(${jogA}deg)`}} onPointerDown={jogDrag('A')}>
-          <img src="/jog-left.png" alt=""/>
-        </div>
-        <div className={`${styles.jog} ${B.playing?styles.spin:''}`} style={{left:'68.0%',top:'17.2%',transform:`rotate(${jogB}deg)`}} onPointerDown={jogDrag('B')}>
-          <img src="/jog-right.png" alt=""/>
-        </div>
-
-        <Knob id="trimA" x={44.7} y={13.9}/>
-        <Knob id="trimB" x={53.3} y={13.9}/>
-        <Knob id="hiA" x={44.7} y={22.0}/>
-        <Knob id="hiB" x={53.3} y={22.0}/>
-        <Knob id="midA" x={44.7} y={30.0}/>
-        <Knob id="midB" x={53.3} y={30.0}/>
-        <Knob id="lowA" x={44.7} y={38.1}/>
-        <Knob id="lowB" x={53.3} y={38.1}/>
-        <Knob id="filterA" x={44.7} y={46.4}/>
-        <Knob id="filterB" x={53.3} y={46.4}/>
-        <Knob id="master" x={61.2} y={14.3} s={4.4}/>
-        <Knob id="fx" x={61.2} y={64.0} s={4.4}/>
-
-        <Hit id="cueA" x={0.8} y={66.8} w={6.1} h={9.2} onClick={()=>cue('A')} round/>
-        <Hit id="playA" x={0.8} y={77.9} w={6.1} h={9.2} onClick={()=>playPause('A')} round/>
-        <Hit id="cueB" x={67.3} y={66.8} w={6.1} h={9.2} onClick={()=>cue('B')} round/>
-        <Hit id="playB" x={67.3} y={77.9} w={6.1} h={9.2} onClick={()=>playPause('B')} round/>
-        <Hit id="syncA" x={24.8} y={6.0} w={4.7} h={5.4} onClick={()=>sync('A')} round/>
-        <Hit id="syncB" x={91.0} y={6.0} w={4.7} h={5.4} onClick={()=>sync('B')} round/>
-        <Hit id="loopA" x={12.0} y={5.0} w={9.6} h={5.7} onClick={()=>loop4('A')}/>
-        <Hit id="loopB" x={79.0} y={5.0} w={9.6} h={5.7} onClick={()=>loop4('B')}/>
-        <Hit id="loadA" x={41.1} y={0.8} w={4.8} h={5.0} onClick={()=>setLibrary(true)}/>
-        <Hit id="loadB" x={54.0} y={0.8} w={4.8} h={5.0} onClick={()=>setLibrary(true)}/>
-
-        {Array.from({length:8}).map((_,i)=><Hit key={'a'+i} id={'padA'+i}
-          x={7.2+(i%4)*4.7} y={73.3+Math.floor(i/4)*8.1} w={4.2} h={6.6}
-          onClick={()=>flash('padA'+i,200)}/>)}
-        {Array.from({length:8}).map((_,i)=><Hit key={'b'+i} id={'padB'+i}
-          x={74.2+(i%4)*4.7} y={73.3+Math.floor(i/4)*8.1} w={4.2} h={6.6}
-          onClick={()=>flash('padB'+i,200)}/>)}
-
-        <div className={`${styles.sliderZone} ${styles.tempoA}`}>
-          <input type="range" min=".84" max="1.16" step=".001" value={A.rate} onChange={e=>patch('A',{rate:Number(e.target.value)})}/>
-        </div>
-        <div className={`${styles.sliderZone} ${styles.tempoB}`}>
-          <input type="range" min=".84" max="1.16" step=".001" value={B.rate} onChange={e=>patch('B',{rate:Number(e.target.value)})}/>
-        </div>
-        <div className={`${styles.sliderZone} ${styles.chA}`}>
-          <input type="range" min="0" max="1" step=".01" value={A.channel} onChange={e=>patch('A',{channel:Number(e.target.value)})}/>
-        </div>
-        <div className={`${styles.sliderZone} ${styles.chB}`}>
-          <input type="range" min="0" max="1" step=".01" value={B.channel} onChange={e=>patch('B',{channel:Number(e.target.value)})}/>
-        </div>
-        <div className={styles.crossZone}>
-          <input type="range" min="-1" max="1" step=".01" value={cross} onChange={e=>setCross(Number(e.target.value))}/>
+      <header className={styles.waveBar}>
+        <div className={styles.trackInfo}>
+          <strong>{A.title}</strong>
+          <span>{A.artist}</span>
+          <div className={styles.trackStats}>
+            <b>{A.bpm}</b>
+            <small>BPM</small>
+            <em>{formatTime(A.time)}</em>
+          </div>
+          <div className={styles.smallWave} />
         </div>
 
-        <button className={styles.cueStoreA} onDoubleClick={()=>setCue('A')} aria-label="Store cue A"/>
-        <button className={styles.cueStoreB} onDoubleClick={()=>setCue('B')} aria-label="Store cue B"/>
+        <div className={styles.dualWave}>
+          <div className={styles.waveOne} />
+          <div className={styles.waveTwo} />
+          <div className={styles.wavePlayhead} />
+          <div className={styles.beatMark} style={{ left: '12%' }} />
+          <div className={styles.beatMark} style={{ left: '30%' }} />
+          <div className={styles.beatMark} style={{ left: '68%' }} />
+          <div className={styles.beatMark} style={{ left: '86%' }} />
+        </div>
+
+        <div className={`${styles.trackInfo} ${styles.trackInfoRight}`}>
+          <strong>{B.title}</strong>
+          <span>{B.artist}</span>
+          <div className={styles.trackStats}>
+            <b>{B.bpm}</b>
+            <small>BPM</small>
+            <em>{formatTime(B.time)}</em>
+          </div>
+          <div className={styles.smallWave} />
+        </div>
+      </header>
+
+      <div className={styles.navbar}>
+        <button onClick={() => history.back()}>← Learning Dojo</button>
+        <b>STUDIO</b>
+        <span />
       </div>
-    </section>
 
-    <nav className={styles.dock}>
-      <button onClick={()=>setLibrary(v=>!v)}>♫ Music Library</button>
-      <button>♬ DDJ-FLX4</button>
-      <button onClick={()=>setSettings(v=>!v)}>⚙ Settings</button>
-    </nav>
+      <section className={styles.stage}>
+        <div className={styles.controller}>
+          <img
+            src="/ddj-flx4-pro.png"
+            className={styles.controllerImage}
+            alt="DDJ-FLX4"
+          />
 
-    <div className={styles.flag}>⚑</div>
-    <div className={styles.brand}>HER9AL <small>Web DJ</small></div>
+          {/* Invisible jog interaction zones. The base image itself remains untouched. */}
+          <div
+            className={styles.jogA}
+            onPointerDown={dragJog('A')}
+            style={{ '--jog-angle': `${jogA}deg` } as React.CSSProperties}
+          >
+            <i />
+          </div>
 
-    {library&&<aside className={styles.drawer}>
-      <div className={styles.drawerHead}><div><small>HER9AL</small><h2>Music Library</h2></div><button onClick={()=>setLibrary(false)}>×</button></div>
-      <div className={styles.loadGrid}>
-        <label><strong>LOAD DECK A</strong><span>MP3 / WAV / M4A</span><input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&loadFile('A',e.target.files[0])}/></label>
-        <label><strong>LOAD DECK B</strong><span>MP3 / WAV / M4A</span><input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&loadFile('B',e.target.files[0])}/></label>
-      </div>
-    </aside>}
+          <div
+            className={styles.jogB}
+            onPointerDown={dragJog('B')}
+            style={{ '--jog-angle': `${jogB}deg` } as React.CSSProperties}
+          >
+            <i />
+          </div>
 
-    {settings&&<aside className={`${styles.drawer} ${styles.settings}`}>
-      <div className={styles.drawerHead}><div><small>HER9AL</small><h2>Settings</h2></div><button onClick={()=>setSettings(false)}>×</button></div>
-      <label>Master output<input type="range" min="0" max="1" step=".01" value={master} onChange={e=>setMaster(Number(e.target.value))}/></label>
-      <p>Drag jog wheels horizontally. Drag mixer knobs vertically. Double-click CUE to save a cue point.</p>
-    </aside>}
-  </main>
+          <Knob id="trimA" x={44.7} y={13.9} />
+          <Knob id="trimB" x={53.3} y={13.9} />
+          <Knob id="hiA" x={44.7} y={22.0} />
+          <Knob id="hiB" x={53.3} y={22.0} />
+          <Knob id="midA" x={44.7} y={30.0} />
+          <Knob id="midB" x={53.3} y={30.0} />
+          <Knob id="lowA" x={44.7} y={38.1} />
+          <Knob id="lowB" x={53.3} y={38.1} />
+          <Knob id="filterA" x={44.7} y={46.4} />
+          <Knob id="filterB" x={53.3} y={46.4} />
+          <Knob id="master" x={61.2} y={14.3} size={4.4} />
+          <Knob id="fx" x={61.2} y={64.0} size={4.4} />
+
+          <Hotspot id="cueA" x={0.8} y={66.8} width={6.1} height={9.2} onClick={() => cue('A')} round />
+          <Hotspot id="playA" x={0.8} y={77.9} width={6.1} height={9.2} onClick={() => playPause('A')} round />
+          <Hotspot id="cueB" x={67.3} y={66.8} width={6.1} height={9.2} onClick={() => cue('B')} round />
+          <Hotspot id="playB" x={67.3} y={77.9} width={6.1} height={9.2} onClick={() => playPause('B')} round />
+
+          <Hotspot id="syncA" x={24.8} y={6.0} width={4.7} height={5.4} onClick={() => sync('A')} round />
+          <Hotspot id="syncB" x={91.0} y={6.0} width={4.7} height={5.4} onClick={() => sync('B')} round />
+          <Hotspot id="loopA" x={12.0} y={5.0} width={9.6} height={5.7} onClick={() => loopFour('A')} />
+          <Hotspot id="loopB" x={79.0} y={5.0} width={9.6} height={5.7} onClick={() => loopFour('B')} />
+          <Hotspot id="loadA" x={41.1} y={0.8} width={4.8} height={5.0} onClick={() => setLibraryOpen(true)} />
+          <Hotspot id="loadB" x={54.0} y={0.8} width={4.8} height={5.0} onClick={() => setLibraryOpen(true)} />
+
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Hotspot
+              key={`a-${index}`}
+              id={`padA${index}`}
+              x={7.2 + (index % 4) * 4.7}
+              y={73.3 + Math.floor(index / 4) * 8.1}
+              width={4.2}
+              height={6.6}
+              onClick={() => pulse(`padA${index}`, 180)}
+            />
+          ))}
+
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Hotspot
+              key={`b-${index}`}
+              id={`padB${index}`}
+              x={74.2 + (index % 4) * 4.7}
+              y={73.3 + Math.floor(index / 4) * 8.1}
+              width={4.2}
+              height={6.6}
+              onClick={() => pulse(`padB${index}`, 180)}
+            />
+          ))}
+
+          {/* Real inputs are transparent, so nothing fake is drawn over the controller image. */}
+          <input
+            className={`${styles.hiddenVertical} ${styles.tempoA}`}
+            type="range"
+            min=".84"
+            max="1.16"
+            step=".001"
+            value={A.rate}
+            onChange={event => patch('A', { rate: Number(event.target.value) })}
+            aria-label="Tempo A"
+          />
+
+          <input
+            className={`${styles.hiddenVertical} ${styles.tempoB}`}
+            type="range"
+            min=".84"
+            max="1.16"
+            step=".001"
+            value={B.rate}
+            onChange={event => patch('B', { rate: Number(event.target.value) })}
+            aria-label="Tempo B"
+          />
+
+          <input
+            className={`${styles.hiddenVertical} ${styles.channelA}`}
+            type="range"
+            min="0"
+            max="1"
+            step=".01"
+            value={A.volume}
+            onChange={event => patch('A', { volume: Number(event.target.value) })}
+            aria-label="Channel A"
+          />
+
+          <input
+            className={`${styles.hiddenVertical} ${styles.channelB}`}
+            type="range"
+            min="0"
+            max="1"
+            step=".01"
+            value={B.volume}
+            onChange={event => patch('B', { volume: Number(event.target.value) })}
+            aria-label="Channel B"
+          />
+
+          <input
+            className={styles.hiddenCrossfader}
+            type="range"
+            min="-1"
+            max="1"
+            step=".01"
+            value={crossfader}
+            onChange={event => setCrossfader(Number(event.target.value))}
+            aria-label="Crossfader"
+          />
+
+          <button className={styles.storeCueA} onDoubleClick={() => storeCue('A')} aria-label="Store cue A" />
+          <button className={styles.storeCueB} onDoubleClick={() => storeCue('B')} aria-label="Store cue B" />
+        </div>
+      </section>
+
+      <button className={styles.report}>⚑</button>
+
+      <nav className={styles.bottomDock}>
+        <button onClick={() => setLibraryOpen(value => !value)}>♫ Music Library</button>
+        <button>♬ DDJ-FLX4</button>
+        <button onClick={() => setSettingsOpen(value => !value)}>⚙ Settings</button>
+      </nav>
+
+      <div className={styles.brand}>HER9AL <small>Web DJ</small></div>
+
+      {libraryOpen && (
+        <aside className={styles.drawer}>
+          <div className={styles.drawerHeader}>
+            <div>
+              <small>HER9AL</small>
+              <h2>Music Library</h2>
+            </div>
+            <button onClick={() => setLibraryOpen(false)}>×</button>
+          </div>
+
+          <div className={styles.loadGrid}>
+            <label>
+              <strong>LOAD DECK A</strong>
+              <span>MP3 / WAV / M4A</span>
+              <input type="file" accept="audio/*" onChange={event => {
+                const file = event.target.files?.[0];
+                if (file) loadLocal('A', file);
+              }} />
+            </label>
+
+            <label>
+              <strong>LOAD DECK B</strong>
+              <span>MP3 / WAV / M4A</span>
+              <input type="file" accept="audio/*" onChange={event => {
+                const file = event.target.files?.[0];
+                if (file) loadLocal('B', file);
+              }} />
+            </label>
+          </div>
+        </aside>
+      )}
+
+      {settingsOpen && (
+        <aside className={`${styles.drawer} ${styles.settingsDrawer}`}>
+          <div className={styles.drawerHeader}>
+            <div>
+              <small>HER9AL</small>
+              <h2>Settings</h2>
+            </div>
+            <button onClick={() => setSettingsOpen(false)}>×</button>
+          </div>
+
+          <label>
+            Master output
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step=".01"
+              value={master}
+              onChange={event => setMaster(Number(event.target.value))}
+            />
+          </label>
+
+          <p>
+            Drag the jog wheels left/right. Drag mixer knobs up/down.
+            Double-click CUE to store a cue point.
+          </p>
+        </aside>
+      )}
+    </main>
+  );
 }

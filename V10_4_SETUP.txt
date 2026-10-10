@@ -1,0 +1,22 @@
+HER9AL V10.4 — EXACT IMAGE FLX4 OVERLAY
+
+What changed
+- Uses the exact DDJ-FLX4 controller image supplied by the project owner.
+- The controller is not redrawn with fake HTML controls. Functional transparent hit areas sit directly over the real buttons/knobs/faders in the image.
+- Full-screen reference-style studio: dual waveforms at top, compact studio nav, centered controller, bottom library/settings dock.
+
+Functional controls
+Deck A + B: PLAY/PAUSE, CUE (double click saves cue), BEAT SYNC, 4 BEAT LOOP, IN, OUT, CALL -/+, LOAD local audio, jog scrub, 8 hot cues.
+Mixer: tempo A/B, channel A/B faders, crossfader, master, trim, HI/MID/LOW/filter UI state.
+Library: HER9AL/site DJ library search + LOAD A / LOAD B.
+
+Install
+1. Copy everything in this patch over HER9AL-GITHUB and Replace All.
+2. No SQL migration is needed if V10 DJ tables are already installed.
+3. git add -A
+4. git commit -m "HER9AL V10.4 exact-image FLX4 studio"
+5. git push origin main
+
+Notes
+- Browser audio can emulate many DJ controls, but it cannot reproduce hardware/rekordbox-specific behavior 1:1.
+- EQ/filter overlay values are prepared in the UI; deeper WebAudio DSP can be added next without changing the visual layout.

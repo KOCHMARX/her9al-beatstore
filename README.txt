@@ -1,24 +1,17 @@
-HER9AL V10.6 — Tribe-layout interactive DJ patch
+HER9AL V10.7 PRO Exact-Image DJ patch
 
-This version is built from the user's own recording as the visual reference.
-It does NOT copy Tribe's proprietary source code.
+Replaces only the DJ page.
+- Exact controller image remains the visual base.
+- Invisible interaction zones sit over the real controls.
+- Jog wheels drag/scratch and spin while playing.
+- Knobs rotate with vertical drag.
+- Tempo/channel/crossfader move directly over the controller.
+- Play, cue, sync, loop and pads react.
+- Local WAV/MP3/M4A loading.
+- No global CSS changes.
+- No SQL required.
 
-Replace only:
-- app/dj/page.tsx
-- app/dj/dj.module.css
-- public/ddj-flx4-reference.png
-- public/ddj-jog-left.png
-- public/ddj-jog-right.png
-- public/ddj-knob.png
-
-Install:
-1) Copy the contents over HER9AL-GITHUB.
-2) git add -A
-3) git commit -m "HER9AL V10.6 exact layout interactive DJ"
-4) git push origin main
-
-Notes:
-- No new SQL required if V10 DJ tables already exist.
-- Local MP3/WAV loading works.
-- Existing /api/dj/tracks is used when available.
-- Jog wheels, knobs, faders, cue, play, sync and 4-beat loop are interactive.
+Install over HER9AL-GITHUB then:
+git add -A
+git commit -m "HER9AL V10.7 PRO exact image DJ"
+git push origin main

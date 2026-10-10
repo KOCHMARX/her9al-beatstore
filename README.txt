@@ -1,17 +1,18 @@
-HER9AL V10.7 PRO Exact-Image DJ patch
+HER9AL V10.8 PRO CLEAN
 
-Replaces only the DJ page.
-- Exact controller image remains the visual base.
-- Invisible interaction zones sit over the real controls.
-- Jog wheels drag/scratch and spin while playing.
-- Knobs rotate with vertical drag.
-- Tempo/channel/crossfader move directly over the controller.
-- Play, cue, sync, loop and pads react.
-- Local WAV/MP3/M4A loading.
-- No global CSS changes.
-- No SQL required.
+This patch only replaces the DJ page and uses the user's high-resolution FLX4 image as the controller base.
 
-Install over HER9AL-GITHUB then:
-git add -A
-git commit -m "HER9AL V10.7 PRO exact image DJ"
-git push origin main
+Fixes:
+- removes visible fake white slider handles
+- larger controller with correct aspect ratio
+- no stretching of the controller image
+- invisible interaction zones
+- high-resolution jog sprites from the same exact image
+- subtler button states
+- knobs are drag zones with only a subtle pointer overlay
+- local MP3/WAV/M4A deck loading
+- actual play/pause, cue, rate, channel volume, master, crossfader and 4-beat loop
+- no global CSS modifications
+
+Install over HER9AL-GITHUB, then push to GitHub.
+No SQL change required.

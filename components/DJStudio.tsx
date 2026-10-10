@@ -1,212 +1,214 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { FolderOpen, Home, Library, Pause, Play, Search, Settings, Upload, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction, RefObject } from 'react';
+import { Disc3, FolderOpen, Gauge, Headphones, Link2, ListMusic, Pause, Play, RotateCcw, Search, SlidersHorizontal, Upload, Volume2 } from 'lucide-react';
 
-type Track = {
-  id:string;
-  title:string;
-  artist?:string|null;
-  audio_url?:string|null;
-  cover_url?:string|null;
-  bpm?:number|null;
-  meta?:string|null;
+type DJTrack = {
+  id: string;
+  title: string;
+  artist?: string | null;
+  audio_url?: string | null;
+  cover_url?: string | null;
+  soundcloud_url?: string | null;
+  bpm?: number | null;
+  source_type?: string | null;
+  meta?: string | null;
 };
 
-type Deck = {
-  track:Track|null;
-  playing:boolean;
-  current:number;
-  duration:number;
-  bpm:number;
-  tempo:number;
-  cue:number;
-  loopIn:number|null;
-  loopOut:number|null;
-  looping:boolean;
-  hot:number[];
-  hi:number;
-  mid:number;
-  low:number;
-  filter:number;
-  trim:number;
+type DeckState = {
+  track: DJTrack | null;
+  playing: boolean;
+  currentTime: number;
+  duration: number;
+  bpm: number;
+  tempo: number;
+  trim: number;
+  high: number;
+  mid: number;
+  low: number;
+  filter: number;
+  channel: number;
+  cue: number;
+  loopIn: number | null;
+  loopOut: number | null;
+  loop: boolean;
+  pads: Array<number | null>;
+  peaks: number[];
 };
 
-const emptyDeck=():Deck=>({
-  track:null,playing:false,current:0,duration:0,bpm:120,tempo:0,cue:0,
-  loopIn:null,loopOut:null,looping:false,hot:Array(8).fill(-1),
-  hi:0,mid:0,low:0,filter:0,trim:0,
+const emptyDeck = (): DeckState => ({
+  track: null, playing: false, currentTime: 0, duration: 0, bpm: 120, tempo: 0,
+  trim: 0.85, high: 0, mid: 0, low: 0, filter: 0, channel: 0.9, cue: 0,
+  loopIn: null, loopOut: null, loop: false, pads: Array(8).fill(null), peaks: Array(72).fill(0.25),
 });
 
-function fmt(v:number){
-  if(!Number.isFinite(v)||v<0)return '0:00';
-  const m=Math.floor(v/60),s=Math.floor(v%60);
-  return `${m}:${String(s).padStart(2,'0')}`;
+function fmt(n: number) {
+  if (!Number.isFinite(n)) return '0:00';
+  const m = Math.floor(n / 60), s = Math.floor(n % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function Wave({deck,onSeek,compact=false}:{deck:Deck;onSeek:(r:number)=>void;compact?:boolean}){
-  const [peaks,setPeaks]=useState<number[]>(Array(compact?90:160).fill(.2));
-  useEffect(()=>{
-    let dead=false; const src=deck.track?.audio_url;
-    if(!src){setPeaks(Array(compact?90:160).fill(.2));return;}
-    (async()=>{
-      try{
-        const res=await fetch(src,{cache:'force-cache'}); const arr=await res.arrayBuffer();
-        const AC=window.AudioContext||(window as any).webkitAudioContext; const ctx=new AC();
-        const decoded=await ctx.decodeAudioData(arr.slice(0)); const data=decoded.getChannelData(0);
-        const bars=compact?90:160,step=Math.max(1,Math.floor(data.length/bars)),out:number[]=[];
-        for(let i=0;i<bars;i++){
-          const a=i*step,b=Math.min(data.length,a+step); let max=0;
-          for(let j=a;j<b;j+=Math.max(1,Math.floor(step/90)))max=Math.max(max,Math.abs(data[j]));
-          out.push(Math.max(.08,Math.min(1,max*2.6)));
-        }
-        if(!dead)setPeaks(out); await ctx.close();
-      }catch{}
-    })();
-    return()=>{dead=true};
-  },[deck.track?.audio_url,compact]);
-  const progress=deck.duration?deck.current/deck.duration:0;
-  return <button className={`dj104-wave ${compact?'compact':''}`} onClick={e=>{const r=e.currentTarget.getBoundingClientRect();onSeek((e.clientX-r.left)/r.width)}}>
-    <div className="dj104-wavebars">{peaks.map((p,i)=><i key={i} className={i/peaks.length<=progress?'played':''} style={{height:`${Math.max(8,p*100)}%`}}/>)}</div>
-    <span className="dj104-playhead" style={{left:`${Math.max(0,Math.min(100,progress*100))}%`}}/>
+function Knob({ label, value, min=-1, max=1, onChange }: { label:string; value:number; min?:number; max?:number; onChange:(v:number)=>void }) {
+  const pct = (value - min) / (max - min);
+  return <label className="dj-knob-wrap"><span>{label}</span><input className="dj-knob" type="range" min={min} max={max} step="0.01" value={value} onChange={e=>onChange(Number(e.target.value))}/><b>{Math.round(pct*100)}%</b></label>;
+}
+
+function MiniWave({ peaks, progress, onSeek }: { peaks:number[]; progress:number; onSeek:(ratio:number)=>void }) {
+  return <button className="dj-wave" onClick={e=>{const r=e.currentTarget.getBoundingClientRect();onSeek((e.clientX-r.left)/r.width)}}>
+    {peaks.map((p,i)=><i key={i} className={i/peaks.length<=progress?'played':''} style={{height:`${Math.max(10,p*100)}%`}}/>)}
   </button>;
 }
 
-export default function DJStudio(){
-  const [ready,setReady]=useState(false);
-  const [library,setLibrary]=useState<Track[]>([]);
+function Deck({ side, state, setState, audioRef, onLoadLocal, onSync }: {
+  side:'A'|'B'; state:DeckState; setState:Dispatch<SetStateAction<DeckState>>; audioRef:RefObject<HTMLAudioElement|null>;
+  onLoadLocal:(file:File)=>void; onSync:()=>void;
+}) {
+  const seek = (s:number) => { if(audioRef.current){audioRef.current.currentTime=Math.max(0,Math.min(s,audioRef.current.duration||s));setState(x=>({...x,currentTime:audioRef.current?.currentTime||0}))}};
+  const toggle = async()=>{const a=audioRef.current;if(!a||!state.track?.audio_url)return;if(a.paused){try{await a.play()}catch{}}else a.pause()};
+  const setCue=()=>setState(x=>({...x,cue:x.currentTime}));
+  const cuePlay=()=>{seek(state.cue); audioRef.current?.pause();};
+  const setLoopIn=()=>setState(x=>({...x,loopIn:x.currentTime}));
+  const setLoopOut=()=>setState(x=>({...x,loopOut:x.currentTime,loop:x.loopIn!==null&&x.currentTime>(x.loopIn||0)}));
+  const fourBeat=()=>{const bpm=state.bpm||120;const len=60/bpm*4;setState(x=>({...x,loopIn:x.currentTime,loopOut:x.currentTime+len,loop:true}))};
+  const pad=(i:number)=>{const v=state.pads[i];if(v==null){setState(x=>({...x,pads:x.pads.map((p,k)=>k===i?x.currentTime:p)}))}else seek(v)};
+  const progress=state.duration?state.currentTime/state.duration:0;
+  const cover=state.track?.cover_url||'/her9al-logo.jpg';
+  return <section className={`dj-deck dj-deck-${side.toLowerCase()}`}>
+    <div className="dj-deck-top">
+      <div><span>DECK {side}</span><strong>{state.track?.title||'Load a track'}</strong><small>{state.track?.artist||'HER9AL DJ Studio'}</small></div>
+      <label className="dj-local-btn"><Upload size={15}/> LOCAL<input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&onLoadLocal(e.target.files[0])}/></label>
+    </div>
+    <MiniWave peaks={state.peaks} progress={progress} onSeek={r=>seek(r*(state.duration||0))}/>
+    <div className="dj-time-row"><span>{fmt(state.currentTime)}</span><span>{state.bpm.toFixed(1)} BPM</span><span>-{fmt(Math.max(0,state.duration-state.currentTime))}</span></div>
+    <div className="dj-deck-body">
+      <div className={`dj-platter ${state.playing?'spin':''}`} onPointerMove={e=>{if(e.buttons===1&&state.duration)seek(state.currentTime+e.movementX*.03)}}>
+        <div className="dj-platter-ring"><img src={cover} alt="cover"/><div className="dj-spindle"/></div>
+      </div>
+      <div className="dj-tempo">
+        <span>TEMPO</span>
+        <input type="range" min="-16" max="16" step="0.1" value={state.tempo} onChange={e=>setState(x=>({...x,tempo:Number(e.target.value)}))}/>
+        <b>{state.tempo>0?'+':''}{state.tempo.toFixed(1)}%</b>
+      </div>
+    </div>
+    <div className="dj-transport">
+      <button className="cue" onClick={cuePlay} onDoubleClick={setCue}>CUE</button>
+      <button className="play" onClick={toggle}>{state.playing?<Pause/>:<Play fill="currentColor"/>}</button>
+      <button onClick={onSync}>BEAT<br/>SYNC</button>
+    </div>
+    <div className="dj-loop-row">
+      <button className={state.loopIn!==null?'on':''} onClick={setLoopIn}>IN</button>
+      <button className={state.loopOut!==null?'on':''} onClick={setLoopOut}>OUT</button>
+      <button className={state.loop?'on':''} onClick={fourBeat}>4 BEAT</button>
+      <button onClick={()=>setState(x=>({...x,loop:!x.loop}))}>EXIT</button>
+      <button onClick={()=>seek(state.currentTime-(60/state.bpm)*4)}>◀ BEAT</button>
+      <button onClick={()=>seek(state.currentTime+(60/state.bpm)*4)}>BEAT ▶</button>
+    </div>
+    <div className="dj-pad-labels"><span>HOT CUE</span><span>PAD FX</span><span>BEAT JUMP</span><span>SAMPLER</span></div>
+    <div className="dj-pads">{state.pads.map((p,i)=><button key={i} className={p!==null?'set':''} onClick={()=>pad(i)}>{i+1}</button>)}</div>
+    <div className="dj-hint">Double-click CUE to set cue · drag jog to nudge/seek · first pad press saves a hot cue.</div>
+  </section>;
+}
+
+export default function DJStudio() {
+  const [userOk,setUserOk]=useState<boolean|null>(null);
+  const [library,setLibrary]=useState<DJTrack[]>([]);
   const [query,setQuery]=useState('');
-  const [drawer,setDrawer]=useState<'library'|'settings'|null>(null);
-  const [a,setA]=useState<Deck>(emptyDeck());
-  const [b,setB]=useState<Deck>(emptyDeck());
+  const [deckA,setDeckA]=useState<DeckState>(emptyDeck());
+  const [deckB,setDeckB]=useState<DeckState>(emptyDeck());
   const [cross,setCross]=useState(0);
-  const [volA,setVolA]=useState(.94),[volB,setVolB]=useState(.94),[master,setMaster]=useState(.92);
-  const audioA=useRef<HTMLAudioElement>(null),audioB=useRef<HTMLAudioElement>(null);
-  const dragRef=useRef<{side:'A'|'B';x:number;t:number}|null>(null);
+  const [master,setMaster]=useState(0.9);
+  const [fxOn,setFxOn]=useState(false);
+  const [smartFade,setSmartFade]=useState(false);
+  const [soundcloud,setSoundcloud]=useState('');
+  const audioA=useRef<HTMLAudioElement|null>(null), audioB=useRef<HTMLAudioElement|null>(null);
+  const ctxRef=useRef<AudioContext|null>(null);
+  const nodes=useRef<any>({});
 
   useEffect(()=>{
     fetch('/api/auth/session',{cache:'no-store'}).then(r=>r.json()).then(j=>{
-      if(!j.user){location.href='/login?next=/dj';return;} setReady(true);
+      if(!j.user){location.href='/login?next=/dj';return;} setUserOk(true);
     }).catch(()=>location.href='/login?next=/dj');
     fetch('/api/dj/library',{cache:'no-store'}).then(async r=>{if(r.ok)setLibrary((await r.json()).tracks||[])}).catch(()=>{});
   },[]);
 
-  const bind=(el:HTMLAudioElement|null,setter:React.Dispatch<React.SetStateAction<Deck>>)=>{
-    if(!el)return;
-    const sync=()=>setter(x=>({...x,current:el.currentTime||0,duration:Number.isFinite(el.duration)?el.duration:x.duration,playing:!el.paused}));
-    el.ontimeupdate=sync;el.onloadedmetadata=sync;el.ondurationchange=sync;el.onplay=sync;el.onpause=sync;el.onended=sync;
+  const setupAudio=useCallback((audio:HTMLAudioElement, key:'A'|'B')=>{
+    if(nodes.current[key])return;
+    const Ctx=window.AudioContext||(window as any).webkitAudioContext;
+    const ctx=ctxRef.current||(ctxRef.current=new Ctx());
+    const src=ctx.createMediaElementSource(audio);
+    const low=ctx.createBiquadFilter();low.type='lowshelf';low.frequency.value=250;
+    const mid=ctx.createBiquadFilter();mid.type='peaking';mid.frequency.value=1200;mid.Q.value=.8;
+    const high=ctx.createBiquadFilter();high.type='highshelf';high.frequency.value=4000;
+    const filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=22000;
+    const gain=ctx.createGain();
+    src.connect(low).connect(mid).connect(high).connect(filter).connect(gain).connect(ctx.destination);
+    nodes.current[key]={src,low,mid,high,filter,gain};
+  },[]);
+
+  const bindAudio=(audio:HTMLAudioElement|null,key:'A'|'B',setState:Dispatch<SetStateAction<DeckState>>)=>{
+    if(!audio)return; setupAudio(audio,key);
+    const t=()=>setState(x=>({...x,currentTime:audio.currentTime||0,duration:Number.isFinite(audio.duration)?audio.duration:x.duration}));
+    const p=()=>setState(x=>({...x,playing:true})); const q=()=>setState(x=>({...x,playing:false}));
+    audio.ontimeupdate=t;audio.onloadedmetadata=t;audio.ondurationchange=t;audio.onplay=p;audio.onpause=q;audio.onended=q;
   };
-  useEffect(()=>{bind(audioA.current,setA);bind(audioB.current,setB)},[]);
+
+  useEffect(()=>{bindAudio(audioA.current,'A',setDeckA);bindAudio(audioB.current,'B',setDeckB)},[setupAudio]);
+
+  const applyDeck=(key:'A'|'B',d:DeckState,a:HTMLAudioElement|null)=>{
+    const n=nodes.current[key];if(!n||!a)return;
+    a.playbackRate=Math.max(.5,Math.min(1.5,1+d.tempo/100));
+    n.low.gain.value=d.low*12;n.mid.gain.value=d.mid*12;n.high.gain.value=d.high*12;
+    n.filter.type=d.filter<0?'lowpass':'highpass';const f=Math.abs(d.filter);n.filter.frequency.value=f<.03?22000:(d.filter<0?22000-(f*20500):30+(f*12000));
+  };
+  useEffect(()=>applyDeck('A',deckA,audioA.current),[deckA.tempo,deckA.low,deckA.mid,deckA.high,deckA.filter]);
+  useEffect(()=>applyDeck('B',deckB,audioB.current),[deckB.tempo,deckB.low,deckB.mid,deckB.high,deckB.filter]);
 
   useEffect(()=>{
-    const ga=(1-Math.max(0,cross))*volA*master*Math.pow(10,a.trim/20);
-    const gb=(1+Math.min(0,cross))*volB*master*Math.pow(10,b.trim/20);
-    if(audioA.current){audioA.current.playbackRate=Math.max(.65,Math.min(1.35,1+a.tempo/100));audioA.current.volume=Math.max(0,Math.min(1,ga));}
-    if(audioB.current){audioB.current.playbackRate=Math.max(.65,Math.min(1.35,1+b.tempo/100));audioB.current.volume=Math.max(0,Math.min(1,gb));}
-  },[a.tempo,b.tempo,a.trim,b.trim,volA,volB,master,cross]);
+    const a=nodes.current.A?.gain,b=nodes.current.B?.gain; if(!a||!b)return;
+    const left=Math.cos((cross+1)*Math.PI/4), right=Math.sin((cross+1)*Math.PI/4);
+    a.gain.value=deckA.channel*deckA.trim*master*left; b.gain.value=deckB.channel*deckB.trim*master*right;
+  },[cross,master,deckA.channel,deckA.trim,deckB.channel,deckB.trim]);
 
   useEffect(()=>{
-    const id=setInterval(()=>{
-      const loop=(el:HTMLAudioElement|null,d:Deck)=>{if(el&&d.looping&&d.loopIn!==null&&d.loopOut!==null&&el.currentTime>=d.loopOut)el.currentTime=d.loopIn};
-      loop(audioA.current,a);loop(audioB.current,b);
-    },35);return()=>clearInterval(id);
-  },[a.looping,a.loopIn,a.loopOut,b.looping,b.loopIn,b.loopOut]);
+    const loop=(a:HTMLAudioElement|null,d:DeckState)=>{if(a&&d.loop&&d.loopIn!==null&&d.loopOut!==null&&a.currentTime>=d.loopOut)a.currentTime=d.loopIn};
+    const id=setInterval(()=>{loop(audioA.current,deckA);loop(audioB.current,deckB)},30);return()=>clearInterval(id);
+  },[deckA.loop,deckA.loopIn,deckA.loopOut,deckB.loop,deckB.loopIn,deckB.loopOut]);
 
-  const get=(s:'A'|'B')=>s==='A'?{d:a,set:setA,el:audioA.current}:{d:b,set:setB,el:audioB.current};
-  const load=(side:'A'|'B',track:Track)=>{
-    const {set,el}=get(side); if(!el||!track.audio_url)return;
-    el.pause();el.src=track.audio_url;el.load();set(x=>({...emptyDeck(),track,bpm:Number(track.bpm)||x.bpm}));
+  const peaksFromUrl=async(url:string)=>{try{const ctx=ctxRef.current||new AudioContext();const buf=await fetch(url).then(r=>r.arrayBuffer());const dec=await ctx.decodeAudioData(buf.slice(0));const data=dec.getChannelData(0), bins=72, step=Math.max(1,Math.floor(data.length/bins));return Array.from({length:bins},(_,i)=>{let m=0;for(let j=i*step;j<Math.min(data.length,(i+1)*step);j+=Math.max(1,Math.floor(step/150)))m=Math.max(m,Math.abs(data[j]));return Math.max(.08,m)})}catch{return Array.from({length:72},(_,i)=>.2+((i*37)%60)/100)}};
+  const loadTrack=async(side:'A'|'B',track:DJTrack)=>{
+    if(track.source_type==='soundcloud'||!track.audio_url){if(track.soundcloud_url)setSoundcloud(track.soundcloud_url);return;}
+    const a=side==='A'?audioA.current:audioB.current, set=side==='A'?setDeckA:setDeckB;if(!a)return;
+    a.pause();a.src=track.audio_url;a.load();const peaks=await peaksFromUrl(track.audio_url);set(x=>({...emptyDeck(),track,bpm:Number(track.bpm)||120,peaks}));
   };
-  const local=(side:'A'|'B',file:File)=>load(side,{id:`local-${Date.now()}`,title:file.name.replace(/\.[^.]+$/,''),artist:'Local file',audio_url:URL.createObjectURL(file)});
-  const toggle=(s:'A'|'B')=>{const {el}=get(s);if(!el?.src)return;el.paused?el.play().catch(()=>{}):el.pause()};
-  const cue=(s:'A'|'B')=>{const {d,el}=get(s);if(!el)return;el.currentTime=d.cue;el.pause()};
-  const setCue=(s:'A'|'B')=>{const {d,set}=get(s);set(x=>({...x,cue:d.current}))};
-  const seek=(s:'A'|'B',ratio:number)=>{const {el}=get(s);if(el&&Number.isFinite(el.duration))el.currentTime=Math.max(0,Math.min(el.duration,el.duration*ratio))};
-  const sync=(s:'A'|'B')=>{
-    if(s==='A'){const target=b.bpm*(1+b.tempo/100);setA(x=>({...x,tempo:Math.max(-16,Math.min(16,((target/x.bpm)-1)*100))}))}
-    else{const target=a.bpm*(1+a.tempo/100);setB(x=>({...x,tempo:Math.max(-16,Math.min(16,((target/x.bpm)-1)*100))}))}
-  };
-  const loop4=(s:'A'|'B')=>{const {d,set}=get(s);const len=(60/(d.bpm||120))*4;set(x=>({...x,loopIn:d.current,loopOut:d.current+len,looping:true}))};
-  const loopIn=(s:'A'|'B')=>{const {d,set}=get(s);set(x=>({...x,loopIn:d.current}))};
-  const loopOut=(s:'A'|'B')=>{const {d,set}=get(s);set(x=>({...x,loopOut:d.current,looping:x.loopIn!==null&&d.current>(x.loopIn??0)}))};
-  const jump=(s:'A'|'B',beats:number)=>{const {d,el}=get(s);if(!el)return;el.currentTime=Math.max(0,Math.min(el.duration||99999,el.currentTime+(60/(d.bpm||120))*beats))};
-  const hot=(s:'A'|'B',idx:number)=>{const {d,set,el}=get(s);if(!el)return;const t=d.hot[idx];if(t>=0){el.currentTime=t;}else{const next=[...d.hot];next[idx]=d.current;set(x=>({...x,hot:next}))}};
-  const jogDown=(side:'A'|'B',e:React.PointerEvent)=>{const {d}=get(side);dragRef.current={side,x:e.clientX,t:d.current};(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)};
-  const jogMove=(e:React.PointerEvent)=>{const drag=dragRef.current;if(!drag)return;const {el}=get(drag.side);if(!el)return;el.currentTime=Math.max(0,Math.min(el.duration||99999,drag.t+(e.clientX-drag.x)*.04))};
-  const jogUp=()=>{dragRef.current=null};
+  const loadLocal=async(side:'A'|'B',file:File)=>{const url=URL.createObjectURL(file);await loadTrack(side,{id:`local:${Date.now()}`,title:file.name.replace(/\.[^.]+$/,''),artist:'Local file',audio_url:url,cover_url:'/her9al-logo.jpg',source_type:'local'})};
+  const sync=(from:'A'|'B')=>{const src=from==='A'?deckA:deckB,target=from==='A'?deckB:deckA,set=from==='A'?setDeckA:setDeckB;if(!src.bpm||!target.bpm)return;const targetRate=((src.bpm/target.bpm)-1)*100;set(x=>({...x,tempo:Math.max(-16,Math.min(16,targetRate))}))};
+
   const filtered=useMemo(()=>library.filter(t=>`${t.title} ${t.artist||''} ${t.meta||''}`.toLowerCase().includes(query.toLowerCase())),[library,query]);
+  if(userOk===null)return <div className="dj-loading">Loading DJ Studio…</div>;
 
-  if(!ready)return <div className="dj104-loading">Loading DJ Studio…</div>;
+  return <div className="dj-studio-shell">
+    <audio ref={r=>{audioA.current=r; if(r)bindAudio(r,'A',setDeckA)}} crossOrigin="anonymous"/>
+    <audio ref={r=>{audioB.current=r; if(r)bindAudio(r,'B',setDeckB)}} crossOrigin="anonymous"/>
+    <div className="dj-toolbar"><div><Disc3/><b>HER9AL DJ</b><span>WEB MIXER</span></div><div className="dj-live-dot">● ACCOUNT MODE</div></div>
+    <div className="dj-console">
+      <Deck side="A" state={deckA} setState={setDeckA} audioRef={audioA} onLoadLocal={f=>loadLocal('A',f)} onSync={()=>sync('A')}/>
+      <section className="dj-mixer">
+        <div className="dj-mixer-head"><SlidersHorizontal/><b>MIXER</b></div>
+        <div className="dj-mixer-cols">
+          <div className="dj-channel"><Knob label="TRIM" value={deckA.trim} min={0} max={1.4} onChange={v=>setDeckA(x=>({...x,trim:v}))}/><Knob label="HI" value={deckA.high} onChange={v=>setDeckA(x=>({...x,high:v}))}/><Knob label="MID" value={deckA.mid} onChange={v=>setDeckA(x=>({...x,mid:v}))}/><Knob label="LOW" value={deckA.low} onChange={v=>setDeckA(x=>({...x,low:v}))}/><Knob label="CFX" value={deckA.filter} onChange={v=>setDeckA(x=>({...x,filter:v}))}/><input className="dj-fader" type="range" min="0" max="1" step=".01" value={deckA.channel} onChange={e=>setDeckA(x=>({...x,channel:Number(e.target.value)}))}/></div>
+          <div className="dj-master"><Knob label="MASTER" value={master} min={0} max={1} onChange={setMaster}/><div className="dj-meters"><i/><i/><i/><i/><i/><i/></div><button className={fxOn?'active':''} onClick={()=>setFxOn(!fxOn)}>BEAT FX</button><button className={smartFade?'active':''} onClick={()=>setSmartFade(!smartFade)}>SMART FADER</button><Headphones size={20}/></div>
+          <div className="dj-channel"><Knob label="TRIM" value={deckB.trim} min={0} max={1.4} onChange={v=>setDeckB(x=>({...x,trim:v}))}/><Knob label="HI" value={deckB.high} onChange={v=>setDeckB(x=>({...x,high:v}))}/><Knob label="MID" value={deckB.mid} onChange={v=>setDeckB(x=>({...x,mid:v}))}/><Knob label="LOW" value={deckB.low} onChange={v=>setDeckB(x=>({...x,low:v}))}/><Knob label="CFX" value={deckB.filter} onChange={v=>setDeckB(x=>({...x,filter:v}))}/><input className="dj-fader" type="range" min="0" max="1" step=".01" value={deckB.channel} onChange={e=>setDeckB(x=>({...x,channel:Number(e.target.value)}))}/></div>
+        </div>
+        <label className="dj-cross"><span>A</span><input type="range" min="-1" max="1" step=".01" value={cross} onChange={e=>setCross(Number(e.target.value))}/><span>B</span></label>
+      </section>
+      <Deck side="B" state={deckB} setState={setDeckB} audioRef={audioB} onLoadLocal={f=>loadLocal('B',f)} onSync={()=>sync('B')}/>
+    </div>
 
-  return <section className="dj104-studio">
-    <audio ref={audioA} crossOrigin="anonymous"/><audio ref={audioB} crossOrigin="anonymous"/>
-
-    <header className="dj104-top">
-      <div className="dj104-deckinfo left"><b>{a.track?.title||'Deck A'}</b><span>{a.track?.artist||'Load a track'}</span><div className="stats"><em>{Math.round(a.bpm*(1+a.tempo/100))} BPM</em><i>{fmt(a.current)}</i><i>-{fmt(a.duration-a.current)}</i></div><Wave compact deck={a} onSeek={r=>seek('A',r)}/></div>
-      <div className="dj104-dualwave"><Wave deck={a} onSeek={r=>seek('A',r)}/><Wave deck={b} onSeek={r=>seek('B',r)}/><div className="beatmarks">{Array.from({length:13}).map((_,i)=><i key={i}/>)}</div></div>
-      <div className="dj104-deckinfo right"><b>{b.track?.title||'Deck B'}</b><span>{b.track?.artist||'Load a track'}</span><div className="stats"><em>{Math.round(b.bpm*(1+b.tempo/100))} BPM</em><i>{fmt(b.current)}</i><i>-{fmt(b.duration-b.current)}</i></div><Wave compact deck={b} onSeek={r=>seek('B',r)}/></div>
-    </header>
-
-    <nav className="dj104-nav"><a href="/">← HER9AL</a><b>STUDIO</b><div><a href="/profile">Account</a><a href="/"><Home size={14}/></a></div></nav>
-
-    <main className="dj104-stage">
-      <div className="dj104-controller-wrap">
-        <img src="/ddj-flx4-exact.png" className="dj104-controller" alt="DDJ-FLX4 controller"/>
-
-        {/* JOG WHEELS */}
-        <button className="hit jog jog-a" aria-label="Jog deck A" onPointerDown={e=>jogDown('A',e)} onPointerMove={jogMove} onPointerUp={jogUp}/>
-        <button className="hit jog jog-b" aria-label="Jog deck B" onPointerDown={e=>jogDown('B',e)} onPointerMove={jogMove} onPointerUp={jogUp}/>
-
-        {/* LOAD */}
-        <label className="hit load load-a"><input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&local('A',e.target.files[0])}/><Upload/></label>
-        <label className="hit load load-b"><input type="file" accept="audio/*" onChange={e=>e.target.files?.[0]&&local('B',e.target.files[0])}/><Upload/></label>
-
-        {/* LEFT TRANSPORT / LOOP */}
-        <button className={`hit play play-a ${a.playing?'on':''}`} onClick={()=>toggle('A')}><span>{a.playing?'II':'▶'}</span></button>
-        <button className="hit cue cue-a" onClick={()=>cue('A')} onDoubleClick={()=>setCue('A')}/>
-        <button className="hit sync sync-a" onClick={()=>sync('A')}/>
-        <button className="hit loop4 loop4-a" onClick={()=>loop4('A')}/>
-        <button className="hit in in-a" onClick={()=>loopIn('A')}/><button className="hit out out-a" onClick={()=>loopOut('A')}/>
-        <button className="hit callminus callminus-a" onClick={()=>jump('A',-4)}/><button className="hit callplus callplus-a" onClick={()=>jump('A',4)}/>
-
-        {/* RIGHT TRANSPORT / LOOP */}
-        <button className={`hit play play-b ${b.playing?'on':''}`} onClick={()=>toggle('B')}><span>{b.playing?'II':'▶'}</span></button>
-        <button className="hit cue cue-b" onClick={()=>cue('B')} onDoubleClick={()=>setCue('B')}/>
-        <button className="hit sync sync-b" onClick={()=>sync('B')}/>
-        <button className="hit loop4 loop4-b" onClick={()=>loop4('B')}/>
-        <button className="hit in in-b" onClick={()=>loopIn('B')}/><button className="hit out out-b" onClick={()=>loopOut('B')}/>
-        <button className="hit callminus callminus-b" onClick={()=>jump('B',-4)}/><button className="hit callplus callplus-b" onClick={()=>jump('B',4)}/>
-
-        {/* PERFORMANCE PADS */}
-        {Array.from({length:8}).map((_,i)=><button key={`pa${i}`} className={`hit pad pad-a p${i+1} ${a.hot[i]>=0?'armed':''}`} onClick={()=>hot('A',i)}/>) }
-        {Array.from({length:8}).map((_,i)=><button key={`pb${i}`} className={`hit pad pad-b p${i+1} ${b.hot[i]>=0?'armed':''}`} onClick={()=>hot('B',i)}/>) }
-
-        {/* FADERS */}
-        <input aria-label="Tempo A" className="ctl tempo tempo-a" type="range" min="-16" max="16" step=".1" value={a.tempo} onChange={e=>setA(x=>({...x,tempo:Number(e.target.value)}))}/>
-        <input aria-label="Tempo B" className="ctl tempo tempo-b" type="range" min="-16" max="16" step=".1" value={b.tempo} onChange={e=>setB(x=>({...x,tempo:Number(e.target.value)}))}/>
-        <input aria-label="Channel A" className="ctl channel channel-a" type="range" min="0" max="1" step=".01" value={volA} onChange={e=>setVolA(Number(e.target.value))}/>
-        <input aria-label="Channel B" className="ctl channel channel-b" type="range" min="0" max="1" step=".01" value={volB} onChange={e=>setVolB(Number(e.target.value))}/>
-        <input aria-label="Crossfader" className="ctl cross" type="range" min="-1" max="1" step=".01" value={cross} onChange={e=>setCross(Number(e.target.value))}/>
-        <input aria-label="Master level" className="ctl master" type="range" min="0" max="1" step=".01" value={master} onChange={e=>setMaster(Number(e.target.value))}/>
-
-        {/* MIXER KNOB HIT AREAS - web values */}
-        <input className="knob trim-a" title="Trim A" type="range" min="-12" max="9" step=".5" value={a.trim} onChange={e=>setA(x=>({...x,trim:Number(e.target.value)}))}/>
-        <input className="knob trim-b" title="Trim B" type="range" min="-12" max="9" step=".5" value={b.trim} onChange={e=>setB(x=>({...x,trim:Number(e.target.value)}))}/>
-        <input className="knob hi-a" title="High A" type="range" min="-26" max="6" step="1" value={a.hi} onChange={e=>setA(x=>({...x,hi:Number(e.target.value)}))}/>
-        <input className="knob hi-b" title="High B" type="range" min="-26" max="6" step="1" value={b.hi} onChange={e=>setB(x=>({...x,hi:Number(e.target.value)}))}/>
-        <input className="knob mid-a" title="Mid A" type="range" min="-26" max="6" step="1" value={a.mid} onChange={e=>setA(x=>({...x,mid:Number(e.target.value)}))}/>
-        <input className="knob mid-b" title="Mid B" type="range" min="-26" max="6" step="1" value={b.mid} onChange={e=>setB(x=>({...x,mid:Number(e.target.value)}))}/>
-        <input className="knob low-a" title="Low A" type="range" min="-26" max="6" step="1" value={a.low} onChange={e=>setA(x=>({...x,low:Number(e.target.value)}))}/>
-        <input className="knob low-b" title="Low B" type="range" min="-26" max="6" step="1" value={b.low} onChange={e=>setB(x=>({...x,low:Number(e.target.value)}))}/>
-        <input className="knob cfx-a" title="Filter A" type="range" min="-1" max="1" step=".01" value={a.filter} onChange={e=>setA(x=>({...x,filter:Number(e.target.value)}))}/>
-        <input className="knob cfx-b" title="Filter B" type="range" min="-1" max="1" step=".01" value={b.filter} onChange={e=>setB(x=>({...x,filter:Number(e.target.value)}))}/>
-      </div>
-    </main>
-
-    <div className="dj104-dock"><button className={drawer==='library'?'active':''} onClick={()=>setDrawer(drawer==='library'?null:'library')}><Library size={14}/> Music Library</button><button className="device">⌘ DDJ-FLX4</button><button className={drawer==='settings'?'active':''} onClick={()=>setDrawer(drawer==='settings'?null:'settings')}><Settings size={14}/> Settings</button></div>
-    <div className="dj104-brand">HER9AL <span>Web DJ</span></div>
-
-    {drawer==='library'&&<aside className="dj104-drawer"><div className="drawer-head"><b>Music Library</b><button onClick={()=>setDrawer(null)}><X size={15}/></button></div><label className="libsearch"><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search tracks, artists, genres…"/></label><div className="librows">{filtered.map(t=><div className="librow" key={t.id}><img src={t.cover_url||'/her9al-logo.jpg'} alt=""/><div><b>{t.title}</b><span>{t.artist||'HER9AL'} {t.meta?`· ${t.meta}`:''}</span></div><button onClick={()=>load('A',t)}>LOAD A</button><button onClick={()=>load('B',t)}>LOAD B</button></div>)}{!filtered.length&&<p>No tracks found.</p>}</div></aside>}
-    {drawer==='settings'&&<aside className="dj104-drawer settings"><div className="drawer-head"><b>Studio settings</b><button onClick={()=>setDrawer(null)}><X size={15}/></button></div><label>Master<input type="range" min="0" max="1" step=".01" value={master} onChange={e=>setMaster(Number(e.target.value))}/></label><label>Crossfader<input type="range" min="-1" max="1" step=".01" value={cross} onChange={e=>setCross(Number(e.target.value))}/></label><p>Tip: drag either jog wheel left/right to scrub. Double-click CUE to save the cue. First tap on an empty pad stores a hot cue; later taps jump to it.</p></aside>}
-  </section>;
+    <div className="dj-bottom-grid">
+      <section className="dj-library-panel"><div className="dj-panel-title"><ListMusic/><div><b>DJ Library</b><span>HER9AL beats + admin DJ tracks + local files</span></div></div><label className="dj-search"><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search tracks, artist, style…"/></label><div className="dj-track-list">{filtered.map(t=><div className="dj-track-row" key={t.id}><img src={t.cover_url||'/her9al-logo.jpg'} alt=""/><div><b>{t.title}</b><span>{t.artist||'HER9AL'} · {t.bpm||'—'} BPM · {t.meta||t.source_type}</span></div><button onClick={()=>loadTrack('A',t)}>LOAD A</button><button onClick={()=>loadTrack('B',t)}>LOAD B</button></div>)}{!filtered.length&&<p>No tracks found.</p>}</div></section>
+      <section className="dj-sc-panel"><div className="dj-panel-title"><Link2/><div><b>SoundCloud source</b><span>Paste a public SoundCloud track or playlist URL</span></div></div><div className="dj-sc-form"><input value={soundcloud} onChange={e=>setSoundcloud(e.target.value)} placeholder="https://soundcloud.com/artist/track"/><button onClick={()=>setSoundcloud(x=>x.trim())}>LOAD</button></div>{soundcloud.startsWith('http')?<iframe title="SoundCloud source" allow="autoplay" src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(soundcloud)}&color=%23ff5b22&auto_play=false&show_artwork=true&single_active=false`}/>:<div className="dj-sc-empty">SoundCloud uses its official embedded player. Use HER9AL/local tracks in the decks for tempo, EQ, loops and scratch-style controls.</div>}</section>
+    </div>
+    <section className="dj-guide"><div className="dj-panel-title"><Gauge/><div><b>Controller guide</b><span>Quick map of the web controls</span></div></div><div className="dj-guide-grid"><div className="dj-guide-card"><b>PLAY / PAUSE</b><p>Starts or pauses the loaded deck.</p></div><div className="dj-guide-card"><b>CUE</b><p>Double-click to set a cue; click to return to it.</p></div><div className="dj-guide-card"><b>JOG</b><p>Drag left/right to nudge or seek through the track.</p></div><div className="dj-guide-card"><b>IN / OUT / 4 BEAT</b><p>Creates loops and exits them without stopping playback.</p></div><div className="dj-guide-card"><b>BEAT SYNC</b><p>Matches the other deck tempo using BPM metadata.</p></div><div className="dj-guide-card"><b>TRIM + EQ</b><p>Controls gain plus high, mid and low frequency bands.</p></div><div className="dj-guide-card"><b>CFX</b><p>Acts as a high-pass / low-pass filter around the center.</p></div><div className="dj-guide-card"><b>CROSSFADER</b><p>Blends Deck A and Deck B with equal-power fading.</p></div><div className="dj-guide-card"><b>HOT CUES</b><p>First press stores the position; later presses jump back.</p></div><div className="dj-guide-card"><b>TEMPO</b><p>Changes playback speed within a ±16% range.</p></div><div className="dj-guide-card"><b>LOCAL</b><p>Loads an audio file from the device without uploading it.</p></div><div className="dj-guide-card"><b>SOUNDCLOUD</b><p>Uses SoundCloud’s official embedded player for public links.</p></div></div></section>
+  </div>;
 }

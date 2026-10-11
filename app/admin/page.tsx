@@ -1,7 +1,6 @@
 'use client';
 
 import SiteHeader from '@/components/SiteHeader';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Disc3, Plus, Trash2, Upload } from 'lucide-react';
 import { GENRES, MOODS, STYLES } from '@/lib/catalog';
@@ -39,42 +38,23 @@ export default function Admin() {
 
   useEffect(() => { load(); }, []);
 
-  const upload = async (kind: string, file: File, target: 'beat' | 'album' = 'beat') => {
+  const upload = (kind: string, file: File, target: 'beat' | 'album' = 'beat') => {
     setBusy(`Uploading ${kind}…`);
     setUploadState({ kind, name: file.name, progress: 0 });
-    try {
-      const signRes = await fetch('/api/admin/upload/sign', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind, name: file.name, contentType: file.type || 'application/octet-stream', size: file.size }),
-      });
-      const signed = await signRes.json();
-      if (!signRes.ok) throw new Error(signed.error || 'Could not prepare upload');
-
-      await new Promise<void>((resolve, reject) => {
-        const fd = new FormData();
-        fd.append('cacheControl', '3600');
-        fd.append('', file);
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', signed.signedUrl);
-        xhr.upload.onprogress = e => {
-          if (e.lengthComputable) setUploadState({ kind, name: file.name, progress: Math.round((e.loaded / e.total) * 100) });
-        };
-        xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(xhr.responseText || `Upload failed (${xhr.status})`));
-        xhr.onerror = () => reject(new Error('Network error during direct upload'));
-        xhr.send(fd);
-      });
-
-      if (target === 'album') setAlbumForm((x:any)=>({ ...x, cover_url: signed.publicUrl }));
-      else setForm((x:any)=>({ ...x, [kind === 'master' ? 'master_path' : `${kind}_url`]: kind === 'master' ? signed.path : signed.publicUrl }));
-      setUploadState({ kind, name: file.name, progress: 100 });
-      setTimeout(()=>setUploadState(null),1500);
-    } catch (error:any) {
-      alert(error?.message || 'Upload failed');
-      setUploadState(null);
-    } finally {
-      setBusy('');
-    }
+    const fd = new FormData(); fd.append('kind', kind); fd.append('file', file);
+    const xhr = new XMLHttpRequest(); xhr.open('POST', '/api/admin/upload');
+    xhr.upload.onprogress = e => { if (e.lengthComputable) setUploadState({ kind, name: file.name, progress: Math.round((e.loaded / e.total) * 100) }); };
+    xhr.onload = () => {
+      try {
+        const j = JSON.parse(xhr.responseText || '{}');
+        if (xhr.status < 200 || xhr.status >= 300) { alert(j.error || 'Upload failed'); setBusy(''); setUploadState(null); return; }
+        if (target === 'album') setAlbumForm((x:any)=>({ ...x, cover_url:j.url }));
+        else setForm((x:any)=>({ ...x, [kind === 'master' ? 'master_path' : `${kind}_url`]: kind === 'master' ? j.path : j.url }));
+        setUploadState({ kind, name:file.name, progress:100 }); setBusy(''); setTimeout(()=>setUploadState(null),1500);
+      } catch { alert('Upload failed'); setBusy(''); setUploadState(null); }
+    };
+    xhr.onerror = () => { alert('Network error during upload'); setBusy(''); setUploadState(null); };
+    xhr.send(fd);
   };
 
   const addBeat = async () => {
@@ -107,7 +87,6 @@ export default function Admin() {
       <button className={tab==='beats'?'active':''} onClick={()=>setTab('beats')}>Beats</button>
       <button className={tab==='albums'?'active':''} onClick={()=>setTab('albums')}>Albums</button>
       <button className={tab==='users'?'active':''} onClick={()=>setTab('users')}>Users & roles</button>
-      <Link className="admin-dj-link" href="/admin/dj">DJ Library</Link>
     </div></div>
 
     {tab==='beats'&&<div className="admin-grid"><div className="panel add-beat"><h2><Plus size={19}/> Add a beat</h2>

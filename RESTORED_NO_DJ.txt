@@ -1,0 +1,33 @@
+HER9AL — FULL WEBSITE WITHOUT DJ CONTROLLER
+
+This package restores the complete HER9AL beat-store website without the DJ Studio/controller experiment.
+
+Included:
+- Home
+- Beats catalog
+- Beat detail pages
+- Albums/catalog support
+- Login / Sign Up
+- Google OAuth
+- Discord OAuth
+- Email/password auth
+- User profile
+- Persistent profile avatar support
+- Library
+- Admin panel
+- Beats / Albums / Users & roles
+- Direct/signed Supabase upload flow from V9
+- Checkout/Stripe routes already present in the base project
+- Global audio player / waveform
+- Hero vinyl
+- Supabase migrations/setup files
+
+Also includes the later admin publish-button fix allowing publication without requiring master_path.
+
+Removed:
+- /dj
+- DJ controller assets
+- DJ API routes
+- all later V10-V21 DJ work
+
+Use this as the clean base if you want to continue the main HER9AL website without DJ Studio.

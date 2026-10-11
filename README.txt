@@ -1,51 +1,63 @@
-HER9AL V16 — DJ STUDIO PRO, CLEAN REBUILD
+HER9AL V17 — ALL CONTROLS
 
-Built from the user's clean DDJ-FLX4 image, not from a page screenshot.
+This is a clean /dj rebuild using the user's clean DDJ-FLX4 photo.
 
-Visual
-- Clean 4K-upscaled controller asset generated from the supplied controller photo
-- Professional dark/blue waveform interface inspired by the supplied reference layout
-- Controller stays visually clean: interaction zones are transparent
-- Rotating controls are cropped from the exact same controller image
-- Loading screen for the DJ controller
-
-Functional
-- Account-only DJ page
-- Deck A/B
-- Local MP3/WAV/M4A
-- Existing /api/dj/tracks library when available
-- Real decoded waveform for local tracks
-- Play / Pause
-- CUE + stored CUE
-- Automatic jog/vinyl rotation linked to currentTime
-- Jog scratch/seek
-- Tempo
+Implemented controls:
+- LOAD A / B
+- BACK / VIEW
+- IN / OUT
+- 4 BEAT / EXIT
+- CUE/LOOP CALL previous / next
+- 1/2X / 2X loop
+- MEMORY cue
+- BEAT SYNC
+- TEMPO RANGE cycle
+- CUE / PLAY-PAUSE on both decks
+- SHIFT
+- Channel CUE 1 / 2 state
+- HOT CUE
+- PAD FX1
+- BEAT JUMP
+- SAMPLER
+- KEYBOARD
+- PAD FX2
+- BEAT LOOP
+- KEY SHIFT
+- 8 performance pads per deck
+- SMART CFX
+- FX SELECT
+- BEAT minus / plus
+- AUTO / TAP
+- FX ON/OFF
+- Tempo faders
 - Channel faders
 - Crossfader
-- Master
-- Trim
-- LOW / MID / HI EQ through Web Audio API
-- Filter
-- Beat Sync
-- Loop IN / OUT
-- 4-beat loop
-- Half / Double / Exit loop
-- Hot Cue / Pad FX / Beat Jump / Sampler pads
-- Beat FX delay + depth
-- Music Library drawer
-- Settings drawer
-- Moving fader cap sprites from the same controller image
-- Responsive desktop/mobile layout
+- TRIM / HI / MID / LOW / FILTER
+- MASTER
+- FX LEVEL/DEPTH
+- Jog seek/scratch
+- Automatic jog rotation during playback
+- Music Library
+- Settings
+- Loading screen
 
+Audio:
+- Web Audio API
+- 3-band EQ
+- filter
+- delay/echo/filter FX modes
+- beat FX timing
+- hot cues
+- sampler
+- beat jump
+- beat loop
+- key-shift approximation through playback rate
+- local WAV / MP3 / M4A
+- existing /api/dj/tracks library if present
+- decoded waveform for local tracks
+
+Important:
+A web browser cannot provide a true separate hardware headphone cue output without an explicitly selected second audio output device. CUE 1 / 2 state is implemented in the UI, but it does not create a separate physical headphone bus automatically.
+
+No SQL migration.
 No global CSS changes.
-No SQL migration required if the existing DJ table/API already exists.
-Local file loading works without the DJ table.
-
-Install:
-Copy this ZIP over:
-C:\Users\user\Downloads\HER9AL-GITHUB
-
-Then:
-git add -A
-git commit -m "HER9AL V16 DJ Studio Pro clean rebuild"
-git push origin main

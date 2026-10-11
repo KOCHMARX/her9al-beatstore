@@ -1,48 +1,51 @@
-HER9AL V15 — DJ STUDIO FROM ZERO
+HER9AL V16 — DJ STUDIO PRO, CLEAN REBUILD
 
-This is a full clean rebuild of /dj, not a patch layered over the older DJ implementations.
+Built from the user's clean DDJ-FLX4 image, not from a page screenshot.
 
-Visual method
-- The page uses the user's own screenshot of the target page as the exact 1351x630 coordinate reference.
-- The full scene scales as one object, so positions do not drift.
-- The controller stays at the same reference coordinates.
-- Dynamic track info/waveforms replace only the demo areas.
-- Third-party page branding is covered and replaced with HER9AL.
+Visual
+- Clean 4K-upscaled controller asset generated from the supplied controller photo
+- Professional dark/blue waveform interface inspired by the supplied reference layout
+- Controller stays visually clean: interaction zones are transparent
+- Rotating controls are cropped from the exact same controller image
+- Loading screen for the DJ controller
 
-Critical fix
-- Jog/vinyl wheels now rotate automatically while tracks play.
-- Rotation is tied to audio.currentTime using requestAnimationFrame, so it is smooth and stays synchronized.
-- Dragging a jog also seeks/scratches the track.
-
-Functional controls
-- A/B local audio loading
-- real decoded waveform
-- play/pause
-- cue + stored cue
-- jog seek/scratch + automatic rotation
-- tempo
-- channel faders
-- visual moving fader caps
-- crossfader + moving cap
-- master
-- trim
-- 3-band EQ
-- filter
-- beat sync
-- loop IN / OUT
-- 4 beat loop
-- half/double/exit loop
-- 8 hot-cue pads per deck
-- delay Beat FX and depth
+Functional
+- Account-only DJ page
+- Deck A/B
+- Local MP3/WAV/M4A
+- Existing /api/dj/tracks library when available
+- Real decoded waveform for local tracks
+- Play / Pause
+- CUE + stored CUE
+- Automatic jog/vinyl rotation linked to currentTime
+- Jog scratch/seek
+- Tempo
+- Channel faders
+- Crossfader
+- Master
+- Trim
+- LOW / MID / HI EQ through Web Audio API
+- Filter
+- Beat Sync
+- Loop IN / OUT
+- 4-beat loop
+- Half / Double / Exit loop
+- Hot Cue / Pad FX / Beat Jump / Sampler pads
+- Beat FX delay + depth
+- Music Library drawer
+- Settings drawer
+- Moving fader cap sprites from the same controller image
+- Responsive desktop/mobile layout
 
 No global CSS changes.
-No SQL migration required.
+No SQL migration required if the existing DJ table/API already exists.
+Local file loading works without the DJ table.
 
 Install:
-Copy over:
+Copy this ZIP over:
 C:\Users\user\Downloads\HER9AL-GITHUB
 
 Then:
 git add -A
-git commit -m "HER9AL V15 DJ Studio from zero"
+git commit -m "HER9AL V16 DJ Studio Pro clean rebuild"
 git push origin main

@@ -182,6 +182,7 @@ export default function DJStudio(){
   const [scratchingB,setScratchingB] = useState(false);
 
   const [active,setActive] = useState<Record<string,boolean>>({});
+  const [uiScale,setUiScale] = useState(1);
 
   const audio = (deck:DeckId) => deck === 'A' ? audioA.current : audioB.current;
   const state = (deck:DeckId) => deck === 'A' ? A : B;
@@ -209,6 +210,21 @@ export default function DJStudio(){
 
     return () => {
       cancelled = true;
+    };
+  },[]);
+
+  useEffect(() => {
+    const updateScale = () => {
+      const sx = window.innerWidth / 1588;
+      const sy = window.innerHeight / 756;
+      setUiScale(Math.min(sx,sy));
+    };
+
+    updateScale();
+    window.addEventListener('resize',updateScale);
+
+    return () => {
+      window.removeEventListener('resize',updateScale);
     };
   },[]);
 
@@ -531,8 +547,12 @@ export default function DJStudio(){
     flash(`play-${deck}`,220);
 
     if(element.paused){
-      await element.play();
-      patch(deck,{playing:true});
+      try{
+        await element.play();
+        patch(deck,{playing:true});
+      }catch{
+        patch(deck,{playing:false});
+      }
     }else{
       element.pause();
       patch(deck,{playing:false});
@@ -677,7 +697,7 @@ export default function DJStudio(){
 
       const element = audio(deck);
 
-      if(element && Number.isFinite(element.duration)){
+      if(element && Number.isFinite(element.duration) && element.duration > 0){
         element.currentTime = clamp(
           element.currentTime + delta * .022,
           0,
@@ -943,12 +963,7 @@ export default function DJStudio(){
     'beatloop',
     'keyshift',
   ];
-
-  const debug =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('debug') === '1';
-
-  return (
+return (
     <main className={styles.viewport}>
       <audio
         ref={audioA}
@@ -1005,7 +1020,7 @@ export default function DJStudio(){
         </div>
       )}
 
-      <div className={styles.designCanvas}>
+      <div className={styles.designCanvas} style={{transform:`translate(-50%,-50%) scale(${uiScale})`}}>
         <header className={styles.header}>
           <div className={styles.deckInfo}>
             <strong>{A.title}</strong>
@@ -1065,7 +1080,7 @@ export default function DJStudio(){
         </div>
 
         <div className={styles.stage}>
-          <div className={`${styles.controller} ${debug?styles.debug:''}`}>
+          <div className={styles.controller}>
             <img
               src="/dj/flx4-4k.png"
               className={styles.controllerBase}

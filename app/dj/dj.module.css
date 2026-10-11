@@ -14,8 +14,7 @@
   top:50%;
   width:1588px;
   height:756px;
-  transform:translate(-50%,-50%)
-    scale(min(calc(100vw / 1588),calc(100vh / 756)));
+  transform:translate(-50%,-50%);
   transform-origin:center center;
   overflow:hidden;
   background:
@@ -350,10 +349,6 @@
   box-shadow:inset 0 0 0 1px rgba(255,151,43,.16)!important;
 }
 
-.debug .hotspot{
-  background:rgba(255,0,0,.12);
-  box-shadow:inset 0 0 0 1px rgba(255,80,80,.6);
-}
 
 .verticalRange,
 .crossfader{
@@ -630,4 +625,8 @@
 
 .status b{
   color:#fff;
+}
+
+.loader{
+  transition:opacity .2s ease;
 }

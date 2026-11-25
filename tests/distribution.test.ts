@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { canonicalUploadType, clean, cleanUrl, isValidReleaseDate } from '../lib/distribution.ts';
 
@@ -28,4 +29,19 @@ test('text and URL cleaners bound input and reject unsafe protocols', () => {
   assert.equal(cleanUrl('javascript:alert(1)'), '');
   assert.equal(cleanUrl('data:text/html,payload'), '');
   assert.equal(cleanUrl('not a URL'), '');
+});
+
+test('Distribution stays in the navigation on small screens', () => {
+  const header = readFileSync(new URL('../components/SiteHeader.tsx', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8');
+  assert.match(header, /href="\/distribution">Distribution<\/Link>/);
+  assert.match(header, /href="\/#rappers" className="nav-optional">Rappers<\/Link>/);
+  assert.doesNotMatch(css, /\.navlinks>a:nth-child\(2\)\{display:none\}/);
+  assert.match(css, /\.navlinks>a\.nav-optional\{display:none\}/);
+});
+
+test('studio shows an artist-profile empty state before releases are unlocked', () => {
+  const studio = readFileSync(new URL('../app/distribution/studio/page.tsx', import.meta.url), 'utf8');
+  assert.match(studio, /ready && !hasProfile/);
+  assert.match(studio, /Create your artist profile first/);
 });

@@ -45,7 +45,7 @@ export default function SiteHeader() {
       <div className="navlinks">
         <Link href="/beats">Beats</Link>
         <Link href="/distribution">Distribution</Link>
-        <Link href="/#rappers">Rappers</Link>
+        <Link href="/#rappers" className="nav-optional">Rappers</Link>
         {user ? (
           <div className="profile-menu" ref={ref}>
             <button className="profile-trigger" onClick={() => setOpen(!open)}>

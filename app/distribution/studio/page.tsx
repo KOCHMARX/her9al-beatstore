@@ -60,12 +60,14 @@ export default function Studio() {
   useEffect(() => {
     fetch('/api/distribution/artist', { cache: 'no-store' }).then(async r => {
       if (r.status === 401) { location.href = '/login'; return null; }
-      return r.json();
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Could not load your artist profile.');
+      return j;
     }).then(j => {
       if (!j) return;
       if (j.profile) { setHasProfile(true); setP(s => ({ ...s, ...Object.fromEntries(Object.entries(j.profile).map(([k, v]) => [k, v ?? ''])) })); setTab('release'); }
       setReady(true);
-    });
+    }).catch(e => setErr(e.message));
     loadMine();
   }, [loadMine]);
 
@@ -129,11 +131,20 @@ export default function Studio() {
 
         <div className="dist-tabs">
           <button className={tab === 'profile' ? 'on' : ''} onClick={() => setTab('profile')}><User size={15} /> Artist profile</button>
-          <button className={tab === 'release' ? 'on' : ''} onClick={() => hasProfile ? setTab('release') : setErr('Create your artist profile first.')}><UploadCloud size={15} /> New release</button>
+          <button className={tab === 'release' ? 'on' : ''} onClick={() => { setErr(''); setTab(hasProfile ? 'release' : 'profile'); }}><UploadCloud size={15} /> New release</button>
           <button className={tab === 'mine' ? 'on' : ''} onClick={() => setTab('mine')}><Disc3 size={15} /> My releases ({mine.length})</button>
         </div>
         {err && <div className="error-box">{err}</div>}
         {msg && <div className="dist-ok"><CheckCircle2 size={16} /> {msg}</div>}
+        {ready && !hasProfile && (
+          <div className="panel dist-empty">
+            <User size={20} color="#ff1838" />
+            <div>
+              <h2>Create your artist profile first</h2>
+              <p>You don’t have an artist profile yet. Add your artist name and details below, then you can upload a single, EP or album.</p>
+            </div>
+          </div>
+        )}
 
         {ready && tab === 'profile' && (
           <div className="panel">

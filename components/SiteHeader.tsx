@@ -44,6 +44,7 @@ export default function SiteHeader() {
       <Link href="/" className="brand"><img src="/her9al-logo.jpg" alt="HER9AL" /><span>HER9AL</span></Link>
       <div className="navlinks">
         <Link href="/beats">Beats</Link>
+        <Link href="/distribution">Distribution</Link>
         <Link href="/#rappers">Rappers</Link>
         {user ? (
           <div className="profile-menu" ref={ref}>
@@ -56,7 +57,9 @@ export default function SiteHeader() {
               <div className="profile-dropdown">
                 <Link href="/profile"><Settings size={15} /> Profile</Link>
                 <Link href="/library"><Library size={15} /> My beats</Link>
+                <Link href="/distribution/studio"><Library size={15} /> My releases</Link>
                 {['owner', 'admin', 'editor'].includes(user.role || '') && <Link href="/admin"><Shield size={15} /> Admin</Link>}
+                {['owner', 'admin', 'editor'].includes(user.role || '') && <Link href="/admin/distribution"><Shield size={15} /> Distribution queue</Link>}
                 <a href="/api/auth/logout"><LogOut size={15} /> Logout</a>
               </div>
             )}

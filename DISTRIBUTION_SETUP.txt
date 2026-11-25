@@ -1,0 +1,8 @@
+HER9AL V10 — DISTRIBUTION ROOM
+1) Supabase → SQL Editor → run supabase/v10_distribution.sql
+2) Deploy. No new env vars are required.
+3) Pages: /distribution (public), /distribution/studio (artists), /admin/distribution (staff).
+4) DELIVERY: stores only accept music from licensed distributors. In /admin/distribution use
+   "Copy delivery package" + download the audio, upload to your distributor account, then set status/links.
+   For automatic delivery sign an API/white-label deal and implement deliverToDistributor() in lib/distributor.ts.
+5) Legal: add Terms, a takedown/DMCA contact, and a royalty-split policy before opening to the public.

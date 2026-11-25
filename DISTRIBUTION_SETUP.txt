@@ -1,8 +1,25 @@
-HER9AL V10 — DISTRIBUTION ROOM
-1) Supabase → SQL Editor → run supabase/v10_distribution.sql
-2) Deploy. No new env vars are required.
-3) Pages: /distribution (public), /distribution/studio (artists), /admin/distribution (staff).
-4) DELIVERY: stores only accept music from licensed distributors. In /admin/distribution use
-   "Copy delivery package" + download the audio, upload to your distributor account, then set status/links.
-   For automatic delivery sign an API/white-label deal and implement deliverToDistributor() in lib/distributor.ts.
-5) Legal: add Terms, a takedown/DMCA contact, and a royalty-split policy before opening to the public.
+HER9AL DISTRIBUTION ROOM — SAFE SETUP
+=====================================
+1) Do not reset Supabase and do not rerun the base schema over production.
+2) Back up production and test the additive migrations in staging first.
+3) Review, then apply supabase/v10_distribution.sql.
+4) Review, then apply supabase/v11_security_hardening.sql for distributed API rate limiting.
+5) Configure every required environment variable explicitly for the Vercel Preview context.
+6) Pages: /distribution (public), /distribution/studio (artists), /admin/distribution (staff).
+
+DELIVERY
+--------
+Stores do not accept arbitrary website uploads. The current admin workflow is manual:
+- review rights and metadata;
+- download the private audio from the admin queue;
+- copy the delivery package;
+- submit through a real licensed distributor account;
+- only then confirm Delivered/Live and add store links.
+
+lib/distributor.ts is a placeholder package builder, not an automatic provider integration.
+Do not configure or advertise automatic delivery until a contracted provider adapter is implemented and tested.
+
+BEFORE PUBLIC LAUNCH
+--------------------
+Add reviewed Terms, privacy/retention policy, takedown/DMCA contact, royalty/split policy,
+content rules, support process, and distributor-specific artist agreements.

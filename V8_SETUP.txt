@@ -1,5 +1,8 @@
 HER9AL V8 PLAYER + RAPPERS + SITE ICON
 
+LEGACY REFERENCE ONLY. Do not follow the main-branch deployment steps below.
+Use PRODUCTION_RELEASE.md for the current Preview-first release process.
+
 1) Copy the patch files over HER9AL-GITHUB and replace existing files.
 2) git add -A
 3) git commit -m "HER9AL V8 persistent player rappers and site icon"

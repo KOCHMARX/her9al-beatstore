@@ -1,5 +1,7 @@
 HER9AL V3 - DIRECT GOOGLE + DISCORD LOGIN
 =========================================
+LEGACY REFERENCE ONLY. Do not follow its main-branch deployment steps.
+Use PRODUCTION_RELEASE.md for the current Preview-first release process.
 
 WHAT CHANGED
 - Login no longer uses Supabase Auth endpoints.

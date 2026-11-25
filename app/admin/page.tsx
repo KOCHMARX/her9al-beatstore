@@ -4,6 +4,7 @@ import SiteHeader from '@/components/SiteHeader';
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Disc3, Plus, Trash2, Upload } from 'lucide-react';
 import { GENRES, MOODS, STYLES } from '@/lib/catalog';
+import { createClient } from '@supabase/supabase-js';
 
 type UploadState = { kind: string; name: string; progress: number } | null;
 
@@ -17,6 +18,7 @@ export default function Admin() {
   const [beats, setBeats] = useState<any[]>([]);
   const [albums, setAlbums] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [viewerRole, setViewerRole] = useState('');
   const [tab, setTab] = useState<'beats' | 'albums' | 'users'>('beats');
   const [form, setForm] = useState<any>(emptyBeat);
   const [albumForm, setAlbumForm] = useState<any>({ title: '', cover_url: '', published: true });
@@ -30,31 +32,36 @@ export default function Admin() {
     setAllowed(true);
     const j = await r.json();
     setBeats(j.beats || []);
+    setViewerRole(j.viewerRole || '');
     const ar = await fetch('/api/admin/albums', { cache: 'no-store' });
     if (ar.ok) setAlbums((await ar.json()).albums || []);
     const ur = await fetch('/api/admin/users', { cache: 'no-store' });
-    if (ur.ok) setUsers((await ur.json()).users || []);
+    if (ur.ok) {
+      const uj = await ur.json();
+      setUsers(uj.users || []);
+      setViewerRole(uj.viewerRole || j.viewerRole || '');
+    }
   };
 
   useEffect(() => { load(); }, []);
 
-  const upload = (kind: string, file: File, target: 'beat' | 'album' = 'beat') => {
+  const upload = async (kind: string, file: File, target: 'beat' | 'album' = 'beat') => {
     setBusy(`Uploading ${kind}…`);
     setUploadState({ kind, name: file.name, progress: 0 });
-    const fd = new FormData(); fd.append('kind', kind); fd.append('file', file);
-    const xhr = new XMLHttpRequest(); xhr.open('POST', '/api/admin/upload');
-    xhr.upload.onprogress = e => { if (e.lengthComputable) setUploadState({ kind, name: file.name, progress: Math.round((e.loaded / e.total) * 100) }); };
-    xhr.onload = () => {
-      try {
-        const j = JSON.parse(xhr.responseText || '{}');
-        if (xhr.status < 200 || xhr.status >= 300) { alert(j.error || 'Upload failed'); setBusy(''); setUploadState(null); return; }
-        if (target === 'album') setAlbumForm((x:any)=>({ ...x, cover_url:j.url }));
-        else setForm((x:any)=>({ ...x, [kind === 'master' ? 'master_path' : `${kind}_url`]: kind === 'master' ? j.path : j.url }));
-        setUploadState({ kind, name:file.name, progress:100 }); setBusy(''); setTimeout(()=>setUploadState(null),1500);
-      } catch { alert('Upload failed'); setBusy(''); setUploadState(null); }
-    };
-    xhr.onerror = () => { alert('Network error during upload'); setBusy(''); setUploadState(null); };
-    xhr.send(fd);
+    try {
+      const response = await fetch('/api/admin/upload/sign', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({kind,name:file.name,size:file.size,contentType:file.type}) });
+      const signed = await response.json().catch(()=>({}));
+      if (!response.ok) throw new Error(signed.error || 'Upload could not be prepared.');
+      setUploadState({ kind, name:file.name, progress:15 });
+      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+      const { error } = await supabase.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, file, { contentType:signed.contentType });
+      if (error) throw error;
+      if (target === 'album') setAlbumForm((x:any)=>({ ...x, cover_url:signed.publicUrl }));
+      else setForm((x:any)=>({ ...x, [kind === 'master' ? 'master_path' : `${kind}_url`]: kind === 'master' ? signed.path : signed.publicUrl }));
+      setUploadState({ kind, name:file.name, progress:100 }); setBusy(''); setTimeout(()=>setUploadState(null),1500);
+    } catch (error:any) {
+      alert(error?.message || 'Upload failed'); setBusy(''); setUploadState(null);
+    }
   };
 
   const addBeat = async () => {
@@ -77,7 +84,7 @@ export default function Admin() {
 
   const delBeat = async (id:string)=>{if(!confirm('Delete this beat?'))return;await fetch('/api/admin/beats?id='+id,{method:'DELETE'});load();};
   const delAlbum = async (id:string)=>{if(!confirm('Delete this album? Beats will stay but become standalone.'))return;await fetch('/api/admin/albums?id='+id,{method:'DELETE'});load();};
-  const role = async (id:string,v:string)=>{await fetch('/api/admin/users',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id,role:v})});load();};
+  const role = async (id:string,v:string)=>{const r=await fetch('/api/admin/users',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id,role:v})});if(!r.ok){const j=await r.json().catch(()=>({}));alert(j.error||'Could not update role.');}await load();};
 
   if (allowed === null) return <main><SiteHeader/><div className="loading">Loading admin…</div></main>;
   if (!allowed) return <main><SiteHeader/><div className="forbidden"><h1>403</h1><p>This account is not a HER9AL admin.</p></div></main>;
@@ -86,7 +93,7 @@ export default function Admin() {
     <div className="admin-title"><div><span>OWNER / ADMIN PANEL</span><h1>HER9AL Studio</h1></div><div className="tabs">
       <button className={tab==='beats'?'active':''} onClick={()=>setTab('beats')}>Beats</button>
       <button className={tab==='albums'?'active':''} onClick={()=>setTab('albums')}>Albums</button>
-      <button className={tab==='users'?'active':''} onClick={()=>setTab('users')}>Users & roles</button>
+      {['owner','admin'].includes(viewerRole)&&<button className={tab==='users'?'active':''} onClick={()=>setTab('users')}>Users & roles</button>}
     </div></div>
 
     {tab==='beats'&&<div className="admin-grid"><div className="panel add-beat"><h2><Plus size={19}/> Add a beat</h2>
@@ -131,6 +138,6 @@ export default function Admin() {
 
     {tab==='albums'&&<div className="admin-grid"><div className="panel"><h2><Disc3 size={19}/> Create an album / tape</h2><label>Album title<input value={albumForm.title} onChange={e=>setAlbumForm({...albumForm,title:e.target.value})} placeholder="HER9AL Vol. 1"/></label><div className="upload-row one"><label className={albumForm.cover_url?'done':''}><Upload size={16}/> Album cover<input type="file" accept="image/*" onChange={e=>e.target.files?.[0]&&upload('cover',e.target.files[0],'album')}/></label></div>{albumForm.cover_url&&<img className="album-cover-preview" src={albumForm.cover_url}/>}<label className="check"><input type="checkbox" checked={albumForm.published} onChange={e=>setAlbumForm({...albumForm,published:e.target.checked})}/> Publish album</label><button className="primary square" onClick={addAlbum} disabled={!albumForm.title||!!busy}>{busy||'Create album'}</button><p className="tiny-note">After creating it, choose this album from the beat upload form. Singles can stay standalone.</p></div><div className="panel"><h2>Albums ({albums.length})</h2><div className="album-admin-list">{albums.map(a=><div className="album-admin-row" key={a.id}><img src={a.cover_url||'/her9al-logo.jpg'}/><div><b>{a.title}</b><span>{a.published?'Published':'Draft'} · {beats.filter(b=>b.album_id===a.id).length} track{beats.filter(b=>b.album_id===a.id).length===1?'':'s'}</span></div><button onClick={()=>delAlbum(a.id)}><Trash2 size={16}/></button></div>)}{!albums.length&&<p className="muted">No albums yet.</p>}</div></div></div>}
 
-    {tab==='users'&&<div className="panel"><h2>Users & roles</h2><p className="subcopy">Owner/admin can promote an account after the user logs in once.</p><div className="users-table">{users.map(u=><div className="user-row" key={u.id}><img src={u.avatar_url||'/her9al-logo.jpg'}/><div><b>{u.display_name||u.email}</b><span>{u.email} · {u.provider}</span></div><select value={u.role} onChange={e=>role(u.id,e.target.value)}><option value="customer">Customer</option><option value="editor">Editor</option><option value="admin">Admin</option><option value="owner">Owner</option></select></div>)}</div></div>}
+    {tab==='users'&&['owner','admin'].includes(viewerRole)&&<div className="panel"><h2>Users & roles</h2><p className="subcopy">New accounts always start as customers. Admins can manage customers/editors; only the protected owner can manage admins.</p><div className="users-table">{users.map(u=><div className="user-row" key={u.id}><img src={u.avatar_url||'/her9al-logo.jpg'}/><div><b>{u.display_name||u.email}</b><span>{u.email} · {u.provider}</span></div><select value={u.role} disabled={u.role==='owner'||(viewerRole!=='owner'&&u.role==='admin')} onChange={e=>role(u.id,e.target.value)}><option value="customer">Customer</option><option value="editor">Editor</option><option value="admin" disabled={viewerRole!=='owner'}>Admin</option>{u.role==='owner'&&<option value="owner">Owner (protected)</option>}</select></div>)}</div></div>}
   </section></main>;
 }

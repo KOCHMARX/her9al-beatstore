@@ -27,3 +27,16 @@ export const cleanUrl = (v: unknown) => {
   if (!s) return '';
   try { const u = new URL(s); return ['http:', 'https:'].includes(u.protocol) ? u.toString() : ''; } catch { return ''; }
 };
+
+export function canonicalUploadType(kind: 'audio' | 'art', value: unknown, fileName: unknown) {
+  const supplied = clean(value, 100).toLowerCase().split(';')[0];
+  if (kind === 'art' && ART_TYPES.includes(supplied)) return supplied;
+  if (kind === 'audio' && AUDIO_TYPES.includes(supplied)) return supplied;
+
+  const extension = clean(fileName, 200).toLowerCase().split('.').pop();
+  if (kind === 'art') return extension === 'png' ? 'image/png' : ['jpg', 'jpeg'].includes(extension || '') ? 'image/jpeg' : '';
+  if (extension === 'mp3') return 'audio/mpeg';
+  if (extension === 'flac') return 'audio/flac';
+  if (extension === 'wav' || extension === 'wave') return 'audio/wav';
+  return '';
+}

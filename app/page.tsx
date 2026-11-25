@@ -48,7 +48,7 @@ export default async function Home() {
         <div className="rappers-head">
           <span>NEW · DISTRIBUTION</span>
           <h2>Release your music everywhere.</h2>
-          <p>Create your artist profile and send your tracks to Spotify, Apple Music, YouTube Music and more.</p>
+          <p>Create your artist profile, submit release-ready tracks and follow HER9AL’s review and distributor-delivery workflow.</p>
           <div className="cta"><Link href="/distribution" className="primary">Open Distribution Room</Link></div>
         </div>
       </section>

@@ -24,6 +24,8 @@ export type AppUser = {
   role: 'owner' | 'admin' | 'editor' | 'customer';
 };
 
+export const APP_USER_COLUMNS = 'id,provider,provider_user_id,email,display_name,avatar_url,role';
+
 export async function upsertOAuthUser(input: {
   provider: 'google' | 'discord' | 'email';
   providerUserId: string;
@@ -32,13 +34,10 @@ export async function upsertOAuthUser(input: {
   avatar?: string | null;
 }) {
   const db = adminDb();
-  const ownerEmail = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
-  const incomingEmail = (input.email || '').trim().toLowerCase();
-  const role = ownerEmail && incomingEmail === ownerEmail ? 'owner' : 'customer';
 
   const { data: existing, error: lookupError } = await db
     .from('app_users')
-    .select('*')
+    .select(APP_USER_COLUMNS)
     .eq('provider', input.provider)
     .eq('provider_user_id', input.providerUserId)
     .maybeSingle();
@@ -55,13 +54,12 @@ export async function upsertOAuthUser(input: {
     };
     if (!existing.display_name && input.name) patch.display_name = input.name;
     if (!existing.avatar_url && input.avatar) patch.avatar_url = input.avatar;
-    if (role === 'owner' && existing.role !== 'owner') patch.role = 'owner';
 
     const { data, error } = await db
       .from('app_users')
       .update(patch)
       .eq('id', existing.id)
-      .select('*')
+      .select(APP_USER_COLUMNS)
       .single();
 
     if (error) {
@@ -79,9 +77,11 @@ export async function upsertOAuthUser(input: {
       email: input.email ?? null,
       display_name: input.name ?? null,
       avatar_url: input.avatar ?? null,
-      role,
+      // Public authentication always starts with the least-privileged role.
+      // Owner/admin/editor roles are assigned explicitly by an existing owner.
+      role: 'customer',
     })
-    .select('*')
+    .select(APP_USER_COLUMNS)
     .single();
 
   if (error) {

@@ -60,7 +60,7 @@ export default function SiteHeader() {
                 <Link href="/distribution/studio"><Library size={15} /> My releases</Link>
                 {['owner', 'admin', 'editor'].includes(user.role || '') && <Link href="/admin"><Shield size={15} /> Admin</Link>}
                 {['owner', 'admin', 'editor'].includes(user.role || '') && <Link href="/admin/distribution"><Shield size={15} /> Distribution queue</Link>}
-                <a href="/api/auth/logout"><LogOut size={15} /> Logout</a>
+                <form action="/api/auth/logout" method="post"><button type="submit"><LogOut size={15} /> Logout</button></form>
               </div>
             )}
           </div>

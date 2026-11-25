@@ -8,13 +8,13 @@ export const metadata = { title: 'HER9AL Distribution — Release your music eve
 const STEPS = [
   ['Create your artist profile', 'Name, bio, country and links. This becomes your artist identity on every store.'],
   ['Upload your release', 'Cover art, WAV/FLAC/MP3 tracks, credits and release date.'],
-  ['We review & deliver', 'Our team checks quality and rights, then sends it to the stores.'],
-  ['Go live', 'Your release appears on Spotify, Apple Music and more, and you can claim your artist profile.'],
+  ['We review & prepare', 'Our team checks quality and rights, then prepares approved releases for licensed-distributor delivery.'],
+  ['Track delivery', 'Follow the status here. A release is only marked delivered or live after the team confirms the real distributor workflow.'],
 ];
 const PERKS = [
   [Wallet, 'Free to submit', 'No upfront fees to start your release.'],
-  [Globe2, 'All major platforms', 'Spotify, Apple Music, YouTube Music, TikTok and more.'],
-  [BadgeCheck, 'Your artist profile', 'Get verified on Spotify for Artists & Apple Music for Artists once live.'],
+  [Globe2, 'Platform selection', 'Request major platforms; final availability depends on the licensed distributor and each store.'],
+  [BadgeCheck, 'Your artist profile', 'Once eligible and live, use each platform’s official process to claim your artist profile.'],
   [ShieldCheck, 'You keep your rights', 'Your masters stay private and yours.'],
 ] as const;
 
@@ -25,7 +25,7 @@ export default function Distribution() {
       <section className="hero dist-hero">
         <div className="eyebrow">HER9AL DISTRIBUTION</div>
         <h1>RELEASE YOUR MUSIC <span>EVERYWHERE.</span></h1>
-        <p>Create your artist profile and send your tracks to Spotify, Apple Music, YouTube Music and more — all from one room.</p>
+        <p>Create your artist profile, submit release-ready tracks, and manage the review workflow for Spotify, Apple Music, YouTube Music and more.</p>
         <div className="cta">
           <Link href="/distribution/studio" className="primary">Start your release</Link>
           <Link href="/beats" className="secondary">Find a beat first</Link>
@@ -33,7 +33,7 @@ export default function Distribution() {
       </section>
 
       <section className="section">
-        <div className="section-head"><div><span>PLATFORMS</span><h2>Where your music goes.</h2></div></div>
+        <div className="section-head"><div><span>PLATFORMS</span><h2>Where you can request delivery.</h2></div></div>
         <div className="chips dist-platforms">{PLATFORMS.map(p => <b key={p}>{p}</b>)}</div>
       </section>
 
@@ -54,6 +54,7 @@ export default function Distribution() {
           ))}
         </div>
         <div className="cta"><Link href="/distribution/studio" className="primary small"><UploadCloud size={16} /> Open the studio</Link></div>
+        <div className="panel dist-disclaimer"><ShieldCheck size={20} color="#ff1838" /><div><strong>Transparent delivery workflow</strong><p>HER9AL currently prepares releases for manual delivery through a licensed distributor. This website does not automatically upload to Spotify, Apple Music, or other stores, and submission does not guarantee acceptance.</p></div></div>
       </section>
       <footer>© 2026 HER9AL. All rights reserved.</footer>
     </main>

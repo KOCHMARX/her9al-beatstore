@@ -1,56 +1,45 @@
-# HER9AL Beat Store V4 — Complete
+# HER9AL Beatstore
 
-V4 fixes the missing post-login experience and turns the project into a real beat-store foundation:
+Next.js 15 / React 19 beat store with direct Google, Discord, and email authentication; a Supabase-backed catalog and private purchase library; Stripe Checkout support; admin tools; and the HER9AL Distribution Room.
 
-- Direct Google + Discord OAuth (no Supabase Auth redirect dependency)
-- Persistent HER9AL user account in `app_users`
-- Login button becomes profile menu after login
-- Editable display name/avatar
-- `My Beats` library with permanent purchase history
-- Paid master re-download using short-lived signed URLs
-- Dynamic public beat catalog from database
-- Admin beat upload: cover, preview, private master, BPM/key/mood/price/license
-- Admin users/roles panel
-- Private master storage; public cover/preview storage
-- Stripe Checkout-ready card payment flow + webhook
-- Responsive black / white / neon-red HER9AL design
+## Preserved store features
 
-## IMPORTANT: run the new SQL
-Supabase → SQL Editor → New query → paste `supabase/schema.sql` → Run.
-Expected: Success.
+- Dynamic beat and album catalog with public audio previews
+- Private paid masters delivered with short-lived signed URLs
+- Persistent users, roles, orders, and purchase history in Supabase
+- Google, Discord, and email/password login
+- Admin beat, album, upload, and role-management tools
+- Existing HER9AL design, logo, player, profile, library, and checkout flow
 
-## Vercel environment variables
-Keep your existing variables and add:
+## Distribution Room
 
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase Settings → API Keys → secret/service-role key. **Server-only. Never prefix with NEXT_PUBLIC.**
-- `OWNER_EMAIL` — the exact Google/Discord email that should automatically become Owner on first login.
+- Artist profiles
+- Single, EP, and album submissions with multiple tracks
+- Direct-to-Supabase cover/audio uploads
+- Platform selection, rights confirmation, release date, artist dashboard, and admin review queue
+- Submitted, in-review, approved, delivered, live, and rejected statuses
 
-Existing direct-login variables:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `AUTH_SECRET`
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `DISCORD_CLIENT_ID`
-- `DISCORD_CLIENT_SECRET`
+Delivery is currently **manual through a licensed distributor**. No automatic Spotify, Apple Music, or other DSP adapter is implemented. See `DISTRIBUTION_SETUP.txt` and `PRODUCTION_RELEASE.md`.
 
-Optional live card payments:
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STORE_CURRENCY=usd`
+## Local verification
 
-If payment variables are missing, the rest of the website still works; checkout shows that payments are not configured instead of pretending a payment succeeded.
+```bash
+npm ci
+npm run build
+```
 
-## Google redirect
-`https://her9al-beatstore.vercel.app/api/auth/google/callback`
+Copy `.env.example` to `.env.local` and provide real development credentials. Never commit `.env*` files or expose service-role, OAuth-client, Stripe, distributor, or session secrets.
 
-## Discord redirect
-`https://her9al-beatstore.vercel.app/api/auth/discord/callback`
+## Database safety
 
-## First owner login
-Set `OWNER_EMAIL` in Vercel to your login email, redeploy, then log out/log back in once. The account becomes `owner` automatically and can access `/admin`.
+Do not reset production. On an existing project, review and apply only the additive migrations that are still pending:
 
-## Upload safety
-Upload a shortened/watermarked MP3 as the preview. Upload the WAV/ZIP master separately. The master is stored in the private `beat-masters` bucket and is never exposed in the public catalog. Paid users receive a 60-second signed download URL.
+- `supabase/v9_pro_upgrade.sql`
+- `supabase/v10_distribution.sql`
+- `supabase/v11_security_hardening.sql`
 
-No website can technically prevent someone from recording audio they can hear. Keeping masters private and only streaming a preview is the meaningful protection.
+Apply migrations in staging first and take a production backup. Existing beats, users, purchases, and Storage objects are not recreated by these migrations.
+
+## Owner safety
+
+Public signup and OAuth never grant `owner`, even when an email matches a configured value. Existing database roles are preserved. If a project has no owner, assign the legitimate account by its verified `app_users.id` in a reviewed SQL transaction as documented in `PRODUCTION_RELEASE.md`; never use email-based automatic promotion.

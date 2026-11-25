@@ -14,21 +14,21 @@ const emptyTrack = (): TrackRow => ({ title: '', audio_path: '', fileName: '', e
 async function upload(kind: 'audio' | 'art', file: File) {
   const r = await fetch('/api/distribution/upload', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ kind, contentType: file.type, size: file.size }),
+    body: JSON.stringify({ kind, name: file.name, contentType: file.type, size: file.size }),
   });
   const j = await r.json();
   if (!r.ok) throw new Error(j.error || 'Upload failed.');
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-  const { error } = await sb.storage.from(j.bucket).uploadToSignedUrl(j.path, j.token, file, { contentType: file.type });
+  const { error } = await sb.storage.from(j.bucket).uploadToSignedUrl(j.path, j.token, file, { contentType: j.contentType });
   if (error) throw new Error(error.message);
-  return j as { path: string; publicUrl: string | null };
+  return j as { path: string; publicUrl: string | null; contentType: string };
 }
 
 function imageSize(file: File) {
   return new Promise<{ w: number; h: number }>((res, rej) => {
     const img = new Image(); const url = URL.createObjectURL(file);
     img.onload = () => { res({ w: img.width, h: img.height }); URL.revokeObjectURL(url); };
-    img.onerror = () => rej(new Error('Invalid image.')); img.src = url;
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Invalid image.')); }; img.src = url;
   });
 }
 
@@ -46,12 +46,17 @@ export default function Studio() {
   const [rel, setRel] = useState({ title: '', release_type: 'single', featured_artists: '', genre: 'Hip Hop', language: 'English', release_date: '', label: '', copyright_line: '' });
   const setRF = (k: string, v: string) => setRel(s => ({ ...s, [k]: v }));
   const [tracks, setTracks] = useState<TrackRow[]>([emptyTrack()]);
-  const [cover, setCover] = useState<{ url: string; busy: boolean }>({ url: '', busy: false });
+  const [cover, setCover] = useState<{ url: string; path: string; busy: boolean }>({ url: '', path: '', busy: false });
   const [platforms, setPlatforms] = useState<string[]>(['Spotify', 'Apple Music']);
   const [rights, setRights] = useState(false);
   const [mine, setMine] = useState<any[]>([]);
 
-  const loadMine = useCallback(() => fetch('/api/distribution/releases', { cache: 'no-store' }).then(r => r.json()).then(j => setMine(j.releases || [])), []);
+  const loadMine = useCallback(() => fetch('/api/distribution/releases', { cache: 'no-store' }).then(async r => {
+    if (r.status === 401) { location.href = '/login'; return null; }
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(body.error || 'Could not load releases.');
+    return body;
+  }).then(j => { if (j) setMine(j.releases || []); }).catch(e => setErr(e.message)), []);
 
   useEffect(() => {
     fetch('/api/distribution/artist', { cache: 'no-store' }).then(async r => {
@@ -80,10 +85,10 @@ export default function Studio() {
       const { w, h } = await imageSize(f);
       if (w !== h) throw new Error('Cover art must be square (e.g. 3000×3000).');
       if (w < 1400) throw new Error('Cover art must be at least 1400×1400 (3000×3000 recommended).');
-      setCover({ url: '', busy: true });
+      setCover({ url: '', path: '', busy: true });
       const up = await upload('art', f);
-      setCover({ url: up.publicUrl || '', busy: false });
-    } catch (e: any) { setCover({ url: '', busy: false }); setErr(e.message); }
+      setCover({ url: up.publicUrl || '', path: up.path, busy: false });
+    } catch (e: any) { setCover({ url: '', path: '', busy: false }); setErr(e.message); }
   };
 
   const pickAudio = async (i: number, f?: File) => {
@@ -101,7 +106,7 @@ export default function Studio() {
     setBusy(true); setErr(''); setMsg('');
     const r = await fetch('/api/distribution/releases', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ...rel, primary_artist: p.artist_name, cover_url: cover.url, platforms, rights_confirmed: rights,
+      body: JSON.stringify({ ...rel, cover_path: cover.path, platforms, rights_confirmed: rights,
         tracks: tracks.map(({ title, audio_path, explicit }) => ({ title, audio_path, explicit })) }),
     });
     const j = await r.json().catch(() => ({}));
@@ -109,7 +114,7 @@ export default function Studio() {
     if (!r.ok) return setErr(j.error || 'Could not submit.');
     setMsg('Release submitted! We will review it and keep you updated here.');
     setRel({ title: '', release_type: 'single', featured_artists: '', genre: 'Hip Hop', language: 'English', release_date: '', label: '', copyright_line: '' });
-    setTracks([emptyTrack()]); setCover({ url: '', busy: false }); setRights(false);
+    setTracks([emptyTrack()]); setCover({ url: '', path: '', busy: false }); setRights(false);
     loadMine(); setTab('mine');
   };
 
@@ -158,7 +163,7 @@ export default function Studio() {
               <label>Featured artists<input value={rel.featured_artists} onChange={e => setRF('featured_artists', e.target.value)} /></label>
               <label>Genre<select value={rel.genre} onChange={e => setRF('genre', e.target.value)}>{GENRES.map(g => <option key={g}>{g}</option>)}</select></label>
               <label>Language<select value={rel.language} onChange={e => setRF('language', e.target.value)}>{LANGUAGES.map(g => <option key={g}>{g}</option>)}</select></label>
-              <label>Release date (min. 7 days ahead)<input type="date" min={new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)} value={rel.release_date} onChange={e => setRF('release_date', e.target.value)} /></label>
+               <label>Release date * (min. 7 days ahead)<input type="date" required min={new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)} value={rel.release_date} onChange={e => setRF('release_date', e.target.value)} /></label>
               <label>Label (optional)<input placeholder={p.artist_name} value={rel.label} onChange={e => setRF('label', e.target.value)} /></label>
               <label>Copyright line (optional)<input placeholder={`℗ ${new Date().getFullYear()} ${p.artist_name}`} value={rel.copyright_line} onChange={e => setRF('copyright_line', e.target.value)} /></label>
             </div>
@@ -189,8 +194,9 @@ export default function Studio() {
 
             <label className="dist-check dist-rights"><input type="checkbox" checked={rights} onChange={e => setRights(e.target.checked)} />
               I confirm I own or control 100% of the rights to this music (including beats and samples) and have the licenses needed to distribute it.</label>
-            <button className="primary" disabled={busy || uploading || !rights} onClick={submit}>{busy ? 'Submitting…' : uploading ? 'Uploading files…' : 'Submit for distribution'}</button>
+            <button className="primary" disabled={busy || uploading || !rights || !rel.title.trim() || !rel.release_date || !cover.path || tracks.some(t => !t.title.trim() || !t.audio_path)} onClick={submit}>{busy ? 'Submitting…' : uploading ? 'Uploading files…' : 'Submit for distribution'}</button>
             <p className="profile-help">Using a HER9AL beat? Make sure your license allows distribution to streaming platforms.</p>
+            <p className="profile-help">Submissions are reviewed by HER9AL. Store delivery is manual through a licensed distributor unless a tested provider integration is added; submission alone does not publish music to a platform.</p>
           </div>
         )}
 

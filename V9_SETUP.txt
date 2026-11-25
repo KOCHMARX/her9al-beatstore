@@ -1,5 +1,8 @@
 HER9AL V9 PRO UPGRADE
 
+LEGACY REFERENCE ONLY. Do not follow the main-branch deployment steps below.
+Use PRODUCTION_RELEASE.md and apply only migrations that are still pending.
+
 1. Run supabase/v9_pro_upgrade.sql in Supabase SQL Editor.
 2. Copy project files over HER9AL-GITHUB and push to main.
 3. No new Vercel variables are required.

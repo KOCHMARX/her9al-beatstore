@@ -27,6 +27,7 @@ create table if not exists public.releases (
   label text,
   copyright_line text,
   cover_url text,
+  cover_path text,
   tracks jsonb not null default '[]'::jsonb,   -- [{title, audio_path, explicit, isrc?}]
   platforms text[] not null default '{}',
   rights_confirmed boolean not null default false,
@@ -35,19 +36,34 @@ create table if not exists public.releases (
   admin_note text,
   upc text,
   store_links jsonb not null default '{}'::jsonb,
+  reviewed_by uuid references public.app_users(id) on delete set null,
+  reviewed_at timestamptz,
+  delivered_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 create index if not exists releases_user_idx on public.releases(user_id, created_at desc);
 create index if not exists releases_status_idx on public.releases(status);
 
+-- Safe when upgrading a project where an earlier V10 draft was already run.
+alter table public.releases add column if not exists cover_path text;
+alter table public.releases add column if not exists reviewed_by uuid references public.app_users(id) on delete set null;
+alter table public.releases add column if not exists reviewed_at timestamptz;
+alter table public.releases add column if not exists delivered_at timestamptz;
+
 alter table public.artist_profiles enable row level security;
 alter table public.releases enable row level security;
 -- All access goes through server routes using the service role (same as V4+).
 
-insert into storage.buckets (id,name,public,file_size_limit)
-values ('release-audio','release-audio',false,314572800)
-on conflict (id) do update set public=false, file_size_limit=314572800;
+insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
+values (
+  'release-audio','release-audio',false,314572800,
+  array['audio/wav','audio/x-wav','audio/wave','audio/flac','audio/x-flac','audio/mpeg']
+)
+on conflict (id) do update set
+  public=false,
+  file_size_limit=314572800,
+  allowed_mime_types=array['audio/wav','audio/x-wav','audio/wave','audio/flac','audio/x-flac','audio/mpeg'];
 
 insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
 values ('release-art','release-art',true,10485760,array['image/png','image/jpeg'])

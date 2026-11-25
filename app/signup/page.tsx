@@ -30,8 +30,8 @@ export default function Signup() {
     <form className="auth-form" onSubmit={submit}>
       <label>Display name<input value={name} onChange={e=>setName(e.target.value)} maxLength={50} placeholder="Your producer / artist name"/></label>
       <label>Email<input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label>
-      <label>Password<input type="password" autoComplete="new-password" minLength={8} value={password} onChange={e=>setPassword(e.target.value)} required/></label>
-      <label>Confirm password<input type="password" autoComplete="new-password" minLength={8} value={confirm} onChange={e=>setConfirm(e.target.value)} required/></label>
+      <label>Password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)} required/></label>
+      <label>Confirm password<input type="password" autoComplete="new-password" minLength={8} maxLength={128} value={confirm} onChange={e=>setConfirm(e.target.value)} required/></label>
       <button className="primary square" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
     </form>
     <div className="auth-divider"><span>OR</span></div>

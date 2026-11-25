@@ -1,8 +1,11 @@
-HER9AL V4 - FAST SETUP
-======================
+HER9AL V4 - FAST SETUP (LEGACY)
+===============================
+Do not use OWNER_EMAIL or automatic owner promotion. Public login now always creates a
+customer. Preserve an existing owner or follow PRODUCTION_RELEASE.md to assign the
+legitimate owner by verified app_users.id in a reviewed transaction.
 1) Replace your GitHub project files with this V4 and push.
 2) Supabase > SQL Editor > run supabase/schema.sql.
-3) Vercel > Environment Variables: add SUPABASE_SERVICE_ROLE_KEY and OWNER_EMAIL.
+3) Vercel > Environment Variables: add the server-only SUPABASE_SERVICE_ROLE_KEY.
 4) Redeploy.
 5) Logout + login with Google again.
 6) Navbar should show your avatar/name instead of Login.

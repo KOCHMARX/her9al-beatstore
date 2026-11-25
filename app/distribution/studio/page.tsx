@@ -1,7 +1,6 @@
 'use client';
 
 import SiteHeader from '@/components/SiteHeader';
-import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, Disc3, Music2, Plus, Trash2, User, UploadCloud } from 'lucide-react';

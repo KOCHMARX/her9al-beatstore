@@ -113,7 +113,8 @@ export function appOrigin(req: NextRequest) {
   if (configured) {
     try {
       const parsed = new URL(configured);
-      if (parsed.protocol === 'https:' || (process.env.NODE_ENV !== 'production' && parsed.protocol === 'http:')) {
+      const loopback = ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
+      if (parsed.protocol === 'https:' || (parsed.protocol === 'http:' && (loopback || process.env.NODE_ENV !== 'production'))) {
         return parsed.origin;
       }
     } catch {}

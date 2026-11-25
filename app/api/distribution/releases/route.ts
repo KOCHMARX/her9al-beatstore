@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/current-user';
 import { adminDb } from '@/lib/db';
 import { GENRES } from '@/lib/catalog';
-import { ART_TYPES, AUDIO_TYPES, LANGUAGES, PLATFORMS, RELEASE_TYPES, LIMITS, clean, Track } from '@/lib/distribution';
+import { ART_TYPES, AUDIO_TYPES, LANGUAGES, PLATFORMS, RELEASE_TYPES, LIMITS, clean, isValidReleaseDate, Track } from '@/lib/distribution';
 import { rateLimit, rateLimitResponse, rejectCrossSite } from '@/lib/api-security';
 import { verifyOwnedStorageObject, verifyReleaseArtwork } from '@/lib/storage-object';
 
@@ -20,16 +20,6 @@ export async function GET() {
     tracks: (Array.isArray(release.tracks) ? release.tracks : []).map((track: Track) => ({ title: track.title })),
   }));
   return NextResponse.json({ releases }, { headers: { 'Cache-Control': 'no-store' } });
-}
-
-function validReleaseDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const selected = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(selected.getTime()) || selected.toISOString().slice(0, 10) !== value) return false;
-  const minimum = new Date();
-  minimum.setUTCHours(0, 0, 0, 0);
-  minimum.setUTCDate(minimum.getUTCDate() + 7);
-  return selected >= minimum;
 }
 
 export async function POST(req: NextRequest) {
@@ -87,7 +77,7 @@ export async function POST(req: NextRequest) {
   if (body.rights_confirmed !== true) return bad('You must confirm you own all rights to this music.');
 
   const releaseDate = clean(body.release_date, 10);
-  if (!validReleaseDate(releaseDate)) return bad('Choose a valid release date at least 7 days from today.');
+  if (!isValidReleaseDate(releaseDate)) return bad('Choose a valid release date at least 7 days from today.');
   const requestedGenre = clean(body.genre, 40);
   const genre = (GENRES as readonly string[]).includes(requestedGenre) ? requestedGenre : 'Hip Hop';
   const requestedLanguage = clean(body.language, 30);

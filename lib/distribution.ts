@@ -40,3 +40,14 @@ export function canonicalUploadType(kind: 'audio' | 'art', value: unknown, fileN
   if (extension === 'wav' || extension === 'wave') return 'audio/wav';
   return '';
 }
+
+export function isValidReleaseDate(value: unknown, now = new Date()) {
+  const date = clean(value, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const selected = new Date(`${date}T00:00:00.000Z`);
+  if (Number.isNaN(selected.getTime()) || selected.toISOString().slice(0, 10) !== date) return false;
+  const minimum = new Date(now);
+  minimum.setUTCHours(0, 0, 0, 0);
+  minimum.setUTCDate(minimum.getUTCDate() + 7);
+  return selected >= minimum;
+}

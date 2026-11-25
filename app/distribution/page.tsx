@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
 import { PLATFORMS } from '@/lib/distribution';
-import { Disc3, UploadCloud, ShieldCheck, BadgeCheck, Globe2, Wallet } from 'lucide-react';
+import { UploadCloud, ShieldCheck, BadgeCheck, Globe2, Wallet } from 'lucide-react';
 
 export const metadata = { title: 'HER9AL Distribution — Release your music everywhere' };
 

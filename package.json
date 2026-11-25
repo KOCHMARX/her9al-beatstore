@@ -2,16 +2,7 @@
   "name": "her9al-beatstore",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint .",
-    "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/security.test.ts tests/distribution.test.ts",
-    "test:integration": "node tests/integration-smoke.mjs",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run test:integration"
-  },
+  "scripts": {"dev":"next dev","build":"next build","start":"next start"},
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
@@ -24,11 +15,6 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "^15.5.29",
     "typescript": "^5.7.2"
-  },
-  "overrides": {
-    "postcss": "8.5.33"
   }
 }

@@ -1,8 +1,5 @@
 HER9AL V7 — Catalog + Albums
 
-LEGACY REFERENCE ONLY. Do not follow the main-branch deployment steps below.
-Use PRODUCTION_RELEASE.md for the current Preview-first release process.
-
 1) Copy this patch over your HER9AL-GITHUB folder.
 2) Supabase -> SQL Editor -> run: supabase/v7_catalog_migration.sql
 3) git add -A

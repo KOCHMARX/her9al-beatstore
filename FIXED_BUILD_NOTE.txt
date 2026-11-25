@@ -1,8 +1,5 @@
 HER9AL V7 FULL FIXED PROJECT
 
-LEGACY REFERENCE ONLY. Do not push these historical instructions to main.
-Use PRODUCTION_RELEASE.md for the current Preview-first release process.
-
 Fix included:
 - GlobalBeat type now includes genre/style/description/albums/licenses.
 - Resolves Vercel TypeScript error in components/BeatGrid.tsx.

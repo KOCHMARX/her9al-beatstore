@@ -1,25 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get('error');
-    if (!code) return;
-    const messages: Record<string, string> = {
-      google_state: 'Google login could not be verified. Please try again.',
-      discord_state: 'Discord login could not be verified. Please try again.',
-      google_cancelled: 'Google login was cancelled.',
-      discord_cancelled: 'Discord login was cancelled.',
-    };
-    setError(messages[code] || 'Social login could not be completed. Please try again.');
-  }, []);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -38,7 +26,7 @@ export default function Login() {
     {error && <div className="error-box">{error}</div>}
     <form className="auth-form" onSubmit={submit}>
       <label>Email<input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label>
-      <label>Password<input type="password" autoComplete="current-password" maxLength={128} value={password} onChange={e=>setPassword(e.target.value)} required/></label>
+      <label>Password<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} required/></label>
       <button className="primary square" disabled={busy}>{busy ? 'Signing in…' : 'Login'}</button>
     </form>
     <div className="auth-divider"><span>OR</span></div>

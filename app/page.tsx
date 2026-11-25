@@ -44,14 +44,6 @@ export default async function Home() {
         <div className="section-head"><div><span>FEATURED</span><h2>Latest drops</h2></div><Link href="/beats">View all</Link></div>
         <BeatGrid compact />
       </section>
-      <section className="rappers-section dist-promo">
-        <div className="rappers-head">
-          <span>NEW · DISTRIBUTION</span>
-          <h2>Release your music everywhere.</h2>
-          <p>Create your artist profile, submit release-ready tracks and follow HER9AL’s review and distributor-delivery workflow.</p>
-          <div className="cta"><Link href="/distribution" className="primary">Open Distribution Room</Link></div>
-        </div>
-      </section>
       <section id="rappers" className="rappers-section">
         <div className="rappers-head">
           <span>COLLABORATIONS</span>

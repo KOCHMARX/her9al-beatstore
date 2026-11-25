@@ -1,7 +1,5 @@
 HER9AL V6 — catalog, profile avatar, dynamic vinyl, beat details & checkout
 
-LEGACY REFERENCE ONLY. Use PRODUCTION_RELEASE.md for current configuration and release steps.
-
 WHAT CHANGED
 1. Public catalog fixed: /api/beats again returns published beats (not the temporary diagnostics JSON).
 2. Latest published beat becomes the homepage vinyl cover automatically.

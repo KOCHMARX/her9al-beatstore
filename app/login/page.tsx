@@ -1,13 +1,36 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('error');
+    const messages: Record<string, string> = {
+      google_not_configured: 'Google sign-in is not configured for this deployment yet. Please use email login or contact HER9AL.',
+      discord_not_configured: 'Discord sign-in is not configured for this deployment yet. Please use email login or contact HER9AL.',
+      google_origin: 'Google sign-in could not resolve a safe callback address for this deployment. Please contact HER9AL.',
+      discord_origin: 'Discord sign-in could not resolve a safe callback address for this deployment. Please contact HER9AL.',
+      google_state: 'That Google sign-in request expired or did not match. Please try again.',
+      discord_state: 'That Discord sign-in request expired or did not match. Please try again.',
+      google_denied: 'Google sign-in was cancelled. You can try again whenever you are ready.',
+      discord_denied: 'Discord sign-in was cancelled. You can try again whenever you are ready.',
+      google_token: 'Google could not complete the sign-in request. Please try again.',
+      discord_token: 'Discord could not complete the sign-in request. Please try again.',
+      google_profile: 'HER9AL could not read your Google profile. Please try again.',
+      discord_profile: 'HER9AL could not read your Discord profile. Please try again.',
+      google_email_unverified: 'Your Google email is not verified. Verify it in Google, then try again.',
+      google_config: 'Google sign-in is unavailable right now. Please try again later.',
+      discord_config: 'Discord sign-in is unavailable right now. Please try again later.',
+      database: 'We could not save your account right now. Please try again later.',
+    };
+    if (code && messages[code]) setError(messages[code]);
+  }, []);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();

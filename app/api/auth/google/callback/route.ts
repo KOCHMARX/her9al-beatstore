@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSessionToken, sessionCookie, stateMatches } from '@/lib/auth-session';
+import { sessionCookie } from '@/lib/auth-session';
 import { upsertOAuthUser } from '@/lib/db';
-export const runtime='nodejs';
-export async function GET(req:NextRequest){
- const code=req.nextUrl.searchParams.get('code'), state=req.nextUrl.searchParams.get('state'), saved=req.cookies.get('her9al_google_state')?.value;
- if(!code||!stateMatches(saved,state)) return NextResponse.redirect(new URL('/login?error=google_state',req.url));
- const clientId=process.env.GOOGLE_CLIENT_ID, clientSecret=process.env.GOOGLE_CLIENT_SECRET;
- if(!clientId||!clientSecret) return NextResponse.redirect(new URL('/login?error=google_config',req.url));
- const redirectUri=`${req.nextUrl.origin}/api/auth/google/callback`;
- const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({code,client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,grant_type:'authorization_code'}),cache:'no-store'});
- if(!tokenRes.ok)return NextResponse.redirect(new URL('/login?error=google_token',req.url));
- const token=await tokenRes.json();
- const profileRes=await fetch('https://openidconnect.googleapis.com/v1/userinfo',{headers:{authorization:`Bearer ${token.access_token}`},cache:'no-store'});
- if(!profileRes.ok)return NextResponse.redirect(new URL('/login?error=google_profile',req.url));
- const p=await profileRes.json();
- try{
-   const appUser=await upsertOAuthUser({provider:'google',providerUserId:String(p.sub),email:p.email??null,name:p.name??null,avatar:p.picture??null});
-   const session=createSessionToken({id:appUser.id,provider:'google',email:appUser.email,name:appUser.display_name,avatar:appUser.avatar_url});
-   const res=NextResponse.redirect(new URL('/profile',req.url));res.cookies.set(sessionCookie.name,session,sessionCookie.options);res.cookies.delete('her9al_google_state');return res;
- }catch{return NextResponse.redirect(new URL('/login?error=database',req.url));}
+import { completeOAuthFlow, oauthRedirectUri, oauthRequestContext } from '@/lib/oauth-flow';
+
+export const runtime = 'nodejs';
+
+function appRedirect(path: string) {
+  return new NextResponse(null, { status: 307, headers: { location: path } });
+}
+
+export async function GET(req: NextRequest) {
+  const context = oauthRequestContext(req);
+  const outcome = await completeOAuthFlow({
+    provider: 'google',
+    code: req.nextUrl.searchParams.get('code'),
+    state: req.nextUrl.searchParams.get('state'),
+    savedState: req.cookies.get('her9al_google_state')?.value,
+    providerError: req.nextUrl.searchParams.get('error'),
+    redirectUri: oauthRedirectUri('google', context),
+    upsertUser: upsertOAuthUser,
+  });
+
+  const res = outcome.kind === 'session' ? appRedirect('/profile') : appRedirect(outcome.path);
+  if (outcome.kind === 'session') res.cookies.set(sessionCookie.name, outcome.token, sessionCookie.options);
+  res.cookies.delete(outcome.stateCookie);
+  return res;
 }

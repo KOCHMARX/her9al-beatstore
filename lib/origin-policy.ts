@@ -72,3 +72,27 @@ export function preferredAppOrigin(input: OriginPolicyInput = {}): string {
   if (configured.length) return configured[0];
   return requestOrigin || inferred || '';
 }
+
+// OAuth redirect URIs must never be derived from an unrecognised Host header.
+// Prefer explicit Vercel/APP_URL configuration; allow loopback for local dev only.
+export function oauthRedirectOrigin(input: OriginPolicyInput = {}): string | null {
+  const isProduction = input.isProduction === true;
+  const branch = normalizeOrigin(input.vercelBranchUrl, isProduction);
+  const vercel = normalizeOrigin(input.vercelUrl, isProduction);
+  const app = normalizeOrigin(input.appUrl, isProduction);
+  const configured = [branch, vercel, app].filter((value): value is string => !!value);
+  const requestOrigin = normalizeOrigin(input.requestOrigin, isProduction);
+  const inferred = inferOrigin(input, isProduction);
+  const isLoopback = (origin: string | null) => {
+    if (!origin) return false;
+    try { return LOOPBACK.has(new URL(origin).hostname.toLowerCase()); } catch { return false; }
+  };
+
+  if (requestOrigin && configured.includes(requestOrigin)) return requestOrigin;
+  if (inferred && configured.includes(inferred)) return inferred;
+  if (branch || vercel) return branch || vercel;
+  if (isLoopback(requestOrigin)) return requestOrigin;
+  if (isLoopback(inferred)) return inferred;
+  if (isLoopback(app)) return app;
+  return null;
+}

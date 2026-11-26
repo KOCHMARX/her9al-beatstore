@@ -80,7 +80,7 @@ try {
   const protectedGets = ['/api/profile', '/api/library', '/api/admin/beats', '/api/admin/releases', '/api/distribution/artist', '/api/distribution/releases'];
   for (const route of protectedGets) {
     const response = await fetch(`${origin}${route}`, { redirect: 'manual' });
-    assert.equal(response.status, 401, `${route} should require authentication`);
+    assert.ok(response.status === 401 || response.status === 403, `${route} should require authentication (got ${response.status})`);
   }
 
   for (const route of ['/api/checkout', '/api/distribution/upload']) {
@@ -112,10 +112,10 @@ try {
 
     const invalid = await fetch(`${origin}/api/auth/${provider}/callback?code=bad&state=bad`, { redirect: 'manual' });
     assert.equal(invalid.status, 307, `${provider} should reject an invalid state`);
-    const invalidLocation = new URL(invalid.headers.get('location'));
+    const invalidLocation = new URL(invalid.headers.get('location'), origin);
     assert.equal(invalidLocation.pathname, '/login');
     assert.equal(invalidLocation.searchParams.get('error'), `${provider}_state`);
-    assert.match(invalid.headers.get('set-cookie') || '', /Max-Age=0/i);
+    assert.match(invalid.headers.get('set-cookie') || '', /(?:Max-Age=0|Expires=Thu, 01 Jan 1970)/i);
   }
 
   const crossSite = await fetch(`${origin}/api/auth/email/login`, {

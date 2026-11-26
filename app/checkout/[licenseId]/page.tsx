@@ -15,7 +15,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ licen
   const db = adminDb();
   const { data: license } = await db
     .from('licenses')
-    .select('id,name,price_cents,file_format,is_exclusive,active,beat:beats(id,title,slug,cover_url,bpm,musical_key,mood,published)')
+    .select('id,name,price_cents,file_format,is_exclusive,terms,active,beat:beats(id,title,slug,cover_url,bpm,musical_key,mood,published)')
     .eq('id', licenseId)
     .eq('active', true)
     .maybeSingle();
@@ -37,6 +37,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ licen
             <h2>Order summary</h2>
             <div className="summary-line"><span>License</span><strong>{license.name}</strong></div>
             <div className="summary-line"><span>Format</span><strong>{license.file_format || 'WAV + MP3'}</strong></div>
+            {license.terms && <div className="summary-line"><span>Terms</span><strong>{license.terms}</strong></div>}
             <div className="summary-line total"><span>Total</span><strong>${(license.price_cents / 100).toFixed(2)}</strong></div>
             <CheckoutButton licenseId={license.id} />
             <div className="checkout-trust"><span><LockKeyhole size={15} /> Secure payment</span><span><ShieldCheck size={15} /> Purchase saved to your account</span></div>

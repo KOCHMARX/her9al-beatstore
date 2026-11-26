@@ -281,7 +281,7 @@ export default function Studio() {
               </button>
               {editingId && <button className="secondary small" onClick={() => { resetForm(); setMsg('Editing cancelled.'); }}>Cancel edit</button>}
             </div>
-            <p className="profile-help">Using a HER9AL beat? Make sure your license allows distribution to streaming platforms.</p>
+            <p className="profile-help">Using a HER9AL beat? Check the license terms shown on the beat, at checkout and in your library before submitting — streaming distribution is only allowed where those terms permit it.</p>
             <p className="profile-help">Submissions are reviewed by HER9AL. Store delivery is manual through a licensed distributor unless a tested provider integration is added; submission alone does not publish music to a platform.</p>
           </div>
         )}

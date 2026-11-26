@@ -42,7 +42,7 @@ where role = 'owner';
 commit;
 ```
 
-Do not select or promote by email alone. The web application cannot grant or demote `owner`.
+Do not select or promote by email alone. Unauthenticated signup cannot grant `owner`; an existing owner may explicitly grant it through the admin role API. Demotion from `owner` remains an operator-only SQL task.
 
 ## 3. Vercel environment variables
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { allowedOrigins, isAllowedOrigin, preferredAppOrigin } from '../lib/origin-policy.ts';
 import { canAssignRole, canConfirmDelivery, canViewAdmin } from '../lib/role-policy.ts';
-import { paidCheckoutOrderId } from '../lib/webhook-events.ts';
+import { paidCheckoutAmount, paidCheckoutOrderId } from '../lib/webhook-events.ts';
 import { stateMatches } from '../lib/auth-session.ts';
 import { canonicalAdminUploadType } from '../lib/upload-policy.ts';
 
@@ -63,6 +63,9 @@ test('webhook only fulfills paid checkout sessions with a valid order reference'
   assert.equal(paidCheckoutOrderId({ ...base, type: 'checkout.session.expired' }), null);
   assert.equal(paidCheckoutOrderId({ ...base, data: { object: { ...base.data.object, client_reference_id: 'not-a-uuid' } } }), null);
   assert.equal(paidCheckoutOrderId(null), null);
+  assert.equal(paidCheckoutAmount({ ...base, data: { object: { ...base.data.object, amount_total: 2900 } } }), 2900);
+  assert.equal(paidCheckoutAmount({ ...base, data: { object: { ...base.data.object, amount_total: '2900' } } }), null);
+  assert.equal(paidCheckoutAmount(base), null);
 });
 
 test('admin uploads are canonicalized to safe public/media MIME types', () => {

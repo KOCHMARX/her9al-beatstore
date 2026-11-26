@@ -9,17 +9,22 @@ export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   let latest: any = null;
+  let latestError = false;
   try {
     const db = adminDb();
-    const { data } = await db
+    const { data, error } = await db
       .from('beats')
       .select('id,title,slug,cover_url,preview_url,published,created_at')
       .eq('published', true)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (error) throw error;
     latest = data || null;
-  } catch {}
+  } catch (error) {
+    latestError = true;
+    console.error('HER9AL HOME BEAT ERROR:', error);
+  }
 
   return (
     <main>
@@ -32,6 +37,7 @@ export default async function Home() {
           <Link href="/beats" className="primary">Explore beats</Link>
           <a href="https://www.youtube.com/@her9almusic" className="secondary" target="_blank">YouTube</a>
         </div>
+        {latestError && <p className="error-box" role="alert">Beats could not be loaded. Please try again later.</p>}
         <HeroVinyl
           title={latest?.title || 'HER9AL // LATEST'}
           cover={latest?.cover_url || '/her9al-logo.jpg'}

@@ -28,6 +28,13 @@ export function isDeliveryStatus(status: unknown): boolean {
   return typeof status === 'string' && (DELIVERY_STATUSES as readonly string[]).includes(status);
 }
 
+// A reason is artist-facing only for review outcomes that require one. Stale text
+// left in the admin form must not become an audit note on approval or delivery.
+export function reviewReason(status: unknown, reason: unknown): string {
+  if (status !== 'rejected' && status !== 'changes_requested') return '';
+  return typeof reason === 'string' ? reason.trim().slice(0, 600) : '';
+}
+
 // History is artist-visible. Only the artist-facing reason may be stored there;
 // private staff notes stay in releases.private_note and must never be copied here.
 export function artistVisibleAuditNote(reason: unknown): string | null {

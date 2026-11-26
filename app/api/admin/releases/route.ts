@@ -4,7 +4,7 @@ import { adminDb } from '@/lib/db';
 import { ADMIN_REVIEW_STATUSES, DELIVERY_STATUSES, STATUS_LABEL, clean, cleanUrl, Track } from '@/lib/distribution';
 import { buildDeliveryPackage } from '@/lib/distributor';
 import { isUuid, rateLimit, rateLimitResponse, rejectCrossSite } from '@/lib/api-security';
-import { artistVisibleAuditNote, buildAuditEvent, canAdminDeliver, canAdminReview } from '@/lib/release-workflow';
+import { artistVisibleAuditNote, buildAuditEvent, canAdminDeliver, canAdminReview, reviewReason } from '@/lib/release-workflow';
 
 export const runtime = 'nodejs';
 
@@ -74,7 +74,7 @@ export async function PATCH(req: NextRequest) {
   if (!isUuid(body.id) || !validStatus) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
 
   const needsReason = body.status === 'rejected' || body.status === 'changes_requested';
-  const reason = clean(body.reject_reason, 600);
+  const reason = reviewReason(body.status, body.reject_reason);
   if (needsReason && !reason) return NextResponse.json({ error: 'A reason for the artist is required.' }, { status: 400 });
   if ((DELIVERY_STATUSES as readonly string[]).includes(body.status)) {
     if (!isManager(user)) return NextResponse.json({ error: 'Only an owner or admin can confirm delivery.' }, { status: 403 });

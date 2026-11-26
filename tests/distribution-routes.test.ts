@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { AUDIO_TYPES, cleanUrl, isValidReleaseDate } from '../lib/distribution.ts';
-import { allowedAdminStatuses, canAdminDeliver, canAdminReview, canArtistEdit } from '../lib/release-workflow.ts';
+import { allowedAdminStatuses, canAdminDeliver, canAdminReview, canArtistEdit, reviewReason } from '../lib/release-workflow.ts';
 import { verifyOwnedStorageObject, verifyReleaseArtwork } from '../lib/storage-object.ts';
 import { fakeDb } from './fake-db.ts';
 
@@ -56,6 +56,8 @@ test('artist links accept only http/https and workflow gates reject unsafe trans
   assert.equal(canAdminDeliver('in_review'), false);
   assert.deepEqual(allowedAdminStatuses('rejected'), []);
   assert.ok(allowedAdminStatuses('submitted').includes('rejected'));
+  assert.equal(reviewReason('rejected', '  Fix the master.  '), 'Fix the master.');
+  assert.equal(reviewReason('approved', 'Stale rejection reason'), '');
   assert.equal(isValidReleaseDate('2026-12-10', new Date('2026-11-26T00:00:00.000Z')), true);
   assert.equal(isValidReleaseDate('2026-12-01', new Date('2026-11-26T00:00:00.000Z')), false);
 });

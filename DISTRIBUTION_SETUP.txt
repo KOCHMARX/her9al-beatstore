@@ -14,7 +14,7 @@ Stores do not accept arbitrary website uploads. The current admin workflow is ma
 - download the private audio from the admin queue;
 - copy the delivery package;
 - submit through a real licensed distributor account;
-- only then confirm Delivered/Live and add store links.
+- only then confirm Delivery package prepared/Live (confirmed) and add store links.
 
 lib/distributor.ts is a placeholder package builder, not an automatic provider integration.
 Do not configure or advertise automatic delivery until a contracted provider adapter is implemented and tested.

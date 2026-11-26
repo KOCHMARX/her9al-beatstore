@@ -25,7 +25,7 @@ test('workflow statuses distinguish drafts, changes requested and rejection', ()
   assert.equal(STATUS_LABEL.draft, 'Draft');
   assert.equal(STATUS_LABEL.changes_requested, 'Changes requested');
   assert.equal(STATUS_LABEL.rejected, 'Rejected');
-  assert.equal(STATUS_LABEL.delivered, 'Sent to stores');
+  assert.equal(STATUS_LABEL.delivered, 'Delivery package prepared');
   assert.ok(STATUSES.includes('draft'));
   assert.deepEqual(EDITABLE_STATUSES, ['draft', 'changes_requested', 'rejected']);
   assert.ok(ADMIN_REVIEW_STATUSES.includes('changes_requested'));

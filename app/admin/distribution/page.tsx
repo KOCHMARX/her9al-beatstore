@@ -34,8 +34,8 @@ export default function AdminDistribution() {
       <SiteHeader />
       <section className="section page">
         <div className="section-head"><div><span>ADMIN</span><h1>Distribution queue.</h1>
-          <p className="subcopy">Review submissions, download files, deliver via your distributor, then mark them live.</p></div></div>
-        <div className="panel dist-disclaimer"><div><strong>Manual delivery mode</strong><p>No automatic Spotify/Apple delivery adapter is implemented. Download approved assets, deliver them through the licensed distributor account, and only then choose Delivered or Live. Editors may review; only owners/admins can confirm delivery.</p></div></div>
+          <p className="subcopy">Review submissions, download files, deliver via your licensed distributor, then record confirmed delivery.</p></div></div>
+        <div className="panel dist-disclaimer"><div><strong>Manual delivery mode</strong><p>No automatic Spotify/Apple delivery adapter is implemented. Download approved assets, deliver them through the licensed distributor account, and only then choose Delivery package prepared or Live (confirmed). Editors may review; only owners/admins can confirm delivery.</p></div></div>
         {msg && <div className="dist-ok">{msg}</div>}
         <div className="library-list">
           {items.map(r => (

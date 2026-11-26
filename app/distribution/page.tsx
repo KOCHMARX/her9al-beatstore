@@ -3,18 +3,18 @@ import SiteHeader from '@/components/SiteHeader';
 import { PLATFORMS } from '@/lib/distribution';
 import { UploadCloud, ShieldCheck, BadgeCheck, Globe2, Wallet } from 'lucide-react';
 
-export const metadata = { title: 'HER9AL Distribution — Release your music everywhere' };
+export const metadata = { title: 'HER9AL Distribution — Get your release ready' };
 
 const STEPS = [
-  ['Create your artist profile', 'Name, bio, country and links. This becomes your artist identity on every store.'],
+  ['Create your artist profile', 'Name, bio, country and links for the delivery package.'],
   ['Upload your release', 'Cover art, WAV/FLAC/MP3 tracks, credits and release date.'],
   ['We review & prepare', 'Our team checks quality and rights, then prepares approved releases for licensed-distributor delivery.'],
-  ['Track delivery', 'Follow the status here. A release is only marked delivered or live after the team confirms the real distributor workflow.'],
+  ['Track the workflow', 'Follow the status here. Delivery and live labels are only used after the team confirms real distribution.'],
 ];
 const PERKS = [
-  [Wallet, 'Free to submit', 'No upfront fees to start your release.'],
-  [Globe2, 'Platform selection', 'Request major platforms; final availability depends on the licensed distributor and each store.'],
-  [BadgeCheck, 'Your artist profile', 'Once eligible and live, use each platform’s official process to claim your artist profile.'],
+  [Wallet, 'Submit for review', 'Prepare a submission without promising a release date.'],
+  [Globe2, 'Requested platforms', 'Choose the platforms you want us to request; availability depends on the licensed distributor and each store.'],
+  [BadgeCheck, 'Your artist profile', 'After confirmed delivery, use each platform’s official process to claim your artist profile.'],
   [ShieldCheck, 'You keep your rights', 'Your masters stay private and yours.'],
 ] as const;
 
@@ -24,8 +24,8 @@ export default function Distribution() {
       <SiteHeader />
       <section className="hero dist-hero">
         <div className="eyebrow">HER9AL DISTRIBUTION</div>
-        <h1>RELEASE YOUR MUSIC <span>EVERYWHERE.</span></h1>
-        <p>Create your artist profile, submit release-ready tracks, and manage the review workflow for Spotify, Apple Music, YouTube Music and more.</p>
+        <h1>GET YOUR RELEASE <span>READY.</span></h1>
+        <p>Create your artist profile, submit your tracks for review and prepare a delivery package. Delivery to Spotify, Apple Music, YouTube Music and other stores happens through an authorized distributor and is only confirmed once it has actually been delivered.</p>
         <div className="cta">
           <Link href="/distribution/studio" className="primary">Start your release</Link>
           <Link href="/beats" className="secondary">Find a beat first</Link>
@@ -47,7 +47,7 @@ export default function Distribution() {
       </section>
 
       <section className="section dist-tight">
-        <div className="section-head"><div><span>HOW IT WORKS</span><h2>Four steps to release day.</h2></div></div>
+        <div className="section-head"><div><span>HOW IT WORKS</span><h2>Four steps to prepare your release.</h2></div></div>
         <div className="dist-grid">
           {STEPS.map(([t, d], i) => (
             <div className="panel dist-card" key={t}><b className="dist-num">0{i + 1}</b><h3>{t}</h3><p>{d}</p></div>

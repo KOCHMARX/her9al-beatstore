@@ -186,8 +186,8 @@ export default function Studio() {
     <main>
       <SiteHeader />
       <section className="account-wrap">
-        <div className="section-head"><div><span>DISTRIBUTION STUDIO</span><h1>Your music, everywhere.</h1>
-          <p className="subcopy">Set up your artist profile, upload a release and track it until it goes live.</p></div></div>
+        <div className="section-head"><div><span>DISTRIBUTION STUDIO</span><h1>Get your release ready.</h1>
+          <p className="subcopy">Set up your artist profile, upload a release and follow its review status.</p></div></div>
 
         <div className="dist-tabs">
           <button className={tab === 'profile' ? 'on' : ''} onClick={() => setTab('profile')}><User size={15} /> Artist profile</button>
@@ -209,7 +209,7 @@ export default function Studio() {
         {ready && tab === 'profile' && (
           <div className="panel">
             <h2><User size={19} /> Artist profile</h2>
-            <p className="profile-help">This is the identity stores use for your name, bio and links.</p>
+            <p className="profile-help">This is the identity used in your delivery package.</p>
             <div className="dist-cover">
               <img src={artistImage || '/her9al-logo.jpg'} alt="Artist" />
               <div><p className="profile-help">Artist image (optional). Square PNG/JPG, up to 10 MB.</p>
@@ -274,13 +274,14 @@ export default function Studio() {
               I confirm I own or control 100% of the rights to this music (including beats and samples) and have the licenses needed to distribute it.</label>
             <div className="cta">
               <button className="primary" disabled={busy || uploading || !rights || !rel.title.trim() || !rel.release_date || !cover.path || tracks.some(t => !t.title.trim() || !t.audio_path)} onClick={() => sendRelease(true)}>
-                {busy ? 'Saving…' : uploading ? 'Uploading files…' : editingId ? 'Save changes & resubmit' : 'Submit for distribution'}
+                {busy ? 'Saving…' : uploading ? 'Uploading files…' : editingId ? 'Save changes & resubmit' : 'Submit for review'}
               </button>
               <button className="secondary small" disabled={busy || uploading || !rel.title.trim()} onClick={() => sendRelease(false)}>
                 {editingId ? 'Save draft' : 'Save draft & continue later'}
               </button>
               {editingId && <button className="secondary small" onClick={() => { resetForm(); setMsg('Editing cancelled.'); }}>Cancel edit</button>}
             </div>
+            <p className="profile-help"><strong>Before you submit:</strong> HER9AL prepares a delivery package; an authorized distributor must deliver it. The platforms selected above are requests, not guaranteed destinations.</p>
             <p className="profile-help">Using a HER9AL beat? Check the license terms shown on the beat, at checkout and in your library before submitting — streaming distribution is only allowed where those terms permit it.</p>
             <p className="profile-help">Submissions are reviewed by HER9AL. Store delivery is manual through a licensed distributor unless a tested provider integration is added; submission alone does not publish music to a platform.</p>
           </div>
@@ -313,7 +314,7 @@ export default function Studio() {
                 <p>Status: <b>{STATUS_LABEL[detail.status] || detail.status}</b> · {detail.release_type} · {detail.tracks?.length || 0} track(s) · {detail.release_date || 'No date'}</p>
                 {detail.reject_reason && <p className="dist-note">Reason: {detail.reject_reason}</p>}
                 {detail.admin_note && <p className="dist-note">Note from HER9AL: {detail.admin_note}</p>}
-                <p className="profile-help">Delivery is manual through a licensed distributor. A status of “Sent to stores” or “Live” means an administrator confirmed the real workflow.</p>
+                <p className="profile-help">Delivery is manual through a licensed distributor. A status of “Delivery package prepared” or “Live (confirmed)” means an administrator confirmed the real workflow.</p>
                 <h3 className="dist-sub">Status history</h3>
                 {detail.events?.length ? (
                   <ul className="dist-timeline">
@@ -324,7 +325,7 @@ export default function Studio() {
             )}
             {mine.some(r => r.status === 'live') && (
               <div className="panel"><h3>Claim your artist profile</h3>
-                <p>Your release is live. Claim your profile to edit your photo, bio and see stats:</p>
+                <p>HER9AL confirmed this release is live. Claim your platform profile if you have an artist account:</p>
                 <div className="dist-links"><a href="https://artists.spotify.com" target="_blank" rel="noreferrer">Spotify for Artists</a><a href="https://artists.apple.com" target="_blank" rel="noreferrer">Apple Music for Artists</a></div></div>
             )}
           </div>

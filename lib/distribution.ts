@@ -11,8 +11,8 @@ export const STATUS_LABEL: Record<string, string> = {
   in_review: 'In review',
   changes_requested: 'Changes requested',
   approved: 'Approved',
-  delivered: 'Sent to stores',
-  live: 'Live',
+  delivered: 'Delivery package prepared',
+  live: 'Live (confirmed)',
   rejected: 'Rejected',
 };
 export const STATUSES = Object.keys(STATUS_LABEL);

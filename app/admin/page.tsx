@@ -4,8 +4,11 @@ import SiteHeader from '@/components/SiteHeader';
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Disc3, Plus, Trash2, Upload } from 'lucide-react';
 import { GENRES, MOODS, STYLES } from '@/lib/catalog';
+import { assignableRolesFor } from '@/lib/role-policy';
 
 type UploadState = { kind: string; name: string; progress: number } | null;
+
+const ROLE_LABEL: Record<string, string> = { customer: 'Customer', editor: 'Editor', admin: 'Admin', owner: 'Owner' };
 
 const emptyBeat = {
   title: '', bpm: '', musical_key: '', mood: 'Dark', genre: 'Trap', style: 'Dark Trap', description: '',
@@ -17,6 +20,7 @@ export default function Admin() {
   const [beats, setBeats] = useState<any[]>([]);
   const [albums, setAlbums] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [viewerRole, setViewerRole] = useState('');
   const [tab, setTab] = useState<'beats' | 'albums' | 'users'>('beats');
   const [form, setForm] = useState<any>(emptyBeat);
   const [albumForm, setAlbumForm] = useState<any>({ title: '', cover_url: '', published: true });
@@ -33,7 +37,11 @@ export default function Admin() {
     const ar = await fetch('/api/admin/albums', { cache: 'no-store' });
     if (ar.ok) setAlbums((await ar.json()).albums || []);
     const ur = await fetch('/api/admin/users', { cache: 'no-store' });
-    if (ur.ok) setUsers((await ur.json()).users || []);
+    if (ur.ok) {
+      const uj = await ur.json();
+      setUsers(uj.users || []);
+      setViewerRole(uj.viewerRole || '');
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -140,6 +148,6 @@ export default function Admin() {
 
     {tab==='albums'&&<div className="admin-grid"><div className="panel"><h2><Disc3 size={19}/> Create an album / tape</h2><label>Album title<input value={albumForm.title} onChange={e=>setAlbumForm({...albumForm,title:e.target.value})} placeholder="HER9AL Vol. 1"/></label><div className="upload-row one"><label className={albumForm.cover_url?'done':''}><Upload size={16}/> Album cover<input type="file" accept="image/*" onChange={e=>e.target.files?.[0]&&upload('cover',e.target.files[0],'album')}/></label></div>{albumForm.cover_url&&<img className="album-cover-preview" src={albumForm.cover_url} alt="Album cover preview"/>}<label className="check"><input type="checkbox" checked={albumForm.published} onChange={e=>setAlbumForm({...albumForm,published:e.target.checked})}/> Publish album</label><button className="primary square" onClick={addAlbum} disabled={!albumForm.title||!!busy}>{busy||'Create album'}</button><p className="tiny-note">After creating it, choose this album from the beat upload form. Singles can stay standalone.</p></div><div className="panel"><h2>Albums ({albums.length})</h2><div className="album-admin-list">{albums.map(a=><div className="album-admin-row" key={a.id}><img src={a.cover_url||'/her9al-logo.jpg'} alt=""/><div><b>{a.title}</b><span>{a.published?'Published':'Draft'} · {beats.filter(b=>b.album_id===a.id).length} track{beats.filter(b=>b.album_id===a.id).length===1?'':'s'}</span></div><button onClick={()=>delAlbum(a.id)}><Trash2 size={16}/></button></div>)}{!albums.length&&<p className="muted">No albums yet.</p>}</div></div></div>}
 
-    {tab==='users'&&<div className="panel"><h2>Users & roles</h2><p className="subcopy">Owner/admin can promote an account after the user logs in once.</p><div className="users-table">{users.map(u=><div className="user-row" key={u.id}><img src={u.avatar_url||'/her9al-logo.jpg'} alt=""/><div><b>{u.display_name||u.email}</b><span>{u.email} · {u.provider}</span></div><select value={u.role} onChange={e=>role(u.id,e.target.value)}><option value="customer">Customer</option><option value="editor">Editor</option><option value="admin">Admin</option><option value="owner">Owner</option></select></div>)}</div></div>}
+    {tab==='users'&&<div className="panel"><h2>Users & roles</h2><p className="subcopy">Owner/admin can promote an account after the user logs in once.</p><div className="users-table">{users.map(u=><div className="user-row" key={u.id}><img src={u.avatar_url||'/her9al-logo.jpg'} alt=""/><div><b>{u.display_name||u.email}</b><span>{u.email} · {u.provider}</span></div>{assignableRolesFor(viewerRole).length ? <select value={u.role} onChange={e=>role(u.id,e.target.value)}>{assignableRolesFor(viewerRole).map(r=><option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select> : <span className="muted">{ROLE_LABEL[u.role] || u.role}</span>}</div>)}</div></div>}
   </section></main>;
 }

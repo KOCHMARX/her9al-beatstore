@@ -29,7 +29,7 @@ export default function BeatGrid({compact=false}:{compact?:boolean}){
   },[]);
   const filtered=useMemo(()=>beats.filter(b=>{const q=query.toLowerCase().trim();const matchesQ=!q||[b.title,b.mood,b.genre,b.style,b.albums?.title,b.description].some(v=>String(v||'').toLowerCase().includes(q));const matchesMode=mode==='tracks'||!!b.albums;return matchesQ&&matchesMode&&(genre==='All'||b.genre===genre)&&(style==='All'||b.style===style)}),[beats,query,genre,style,mode]);
   const reset=()=>{setQuery('');setGenre('All');setStyle('All');setMode('tracks')};
-  const message=status==='error'?catalogMessage(true,0,0):status==='ready'?catalogMessage(false,beats.length,filtered.length):null;
+  const message=status==='error'?catalogMessage(true,0,0):status==='ready'?catalogMessage(false,beats.length,filtered.length):'Loading beats…';
   return <>
     {!compact&&<>
       <div className="browse-mega">
@@ -45,9 +45,9 @@ export default function BeatGrid({compact=false}:{compact?:boolean}){
           <div><h3>BEAT STYLES</h3>{STYLES.slice(0,14).map(x=><button className={style===x?'selected':''} key={x} onClick={()=>{setMode('tracks');setStyle(x)}}>{x}</button>)}</div>
         </div>
       </div>
-      <div className="catalog-search"><Search size={18}/><input placeholder="Search beats, styles, moods, albums…" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button onClick={()=>setQuery('')}><X size={16}/></button>}</div>
-      <div className="catalog-filter-row"><select value={genre} onChange={e=>setGenre(e.target.value)}><option>All</option>{GENRES.map(x=><option key={x}>{x}</option>)}</select><select value={style} onChange={e=>setStyle(e.target.value)}><option>All</option>{STYLES.map(x=><option key={x}>{x}</option>)}</select><span>{filtered.length} track{filtered.length===1?'':'s'}{mode==='collections'?' in collections':''}</span></div>
+      <div className="catalog-search"><Search size={18}/><input aria-label="Search beats" placeholder="Search beats, styles, moods, albums…" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button onClick={()=>setQuery('')}><X size={16}/></button>}</div>
+      <div className="catalog-filter-row"><select aria-label="Genre filter" value={genre} onChange={e=>setGenre(e.target.value)}><option>All</option>{GENRES.map(x=><option key={x}>{x}</option>)}</select><select aria-label="Style filter" value={style} onChange={e=>setStyle(e.target.value)}><option>All</option>{STYLES.map(x=><option key={x}>{x}</option>)}</select><span>{filtered.length} track{filtered.length===1?'':'s'}{mode==='collections'?' in collections':''}</span></div>
     </>}
-    <div className="grid">{filtered.slice(0,compact?6:99).map(b=><BeatCard key={b.id} beat={b} onPlay={playBeat}/>)}{message&&<div className="empty-state" role={status==='error'?'alert':undefined}>{message}</div>}</div>
+    <div className="grid">{filtered.slice(0,compact?6:99).map(b=><BeatCard key={b.id} beat={b} onPlay={playBeat}/>)}{message&&<div className="empty-state" role={status==='error'?'alert':status==='loading'?'status':undefined}>{message}</div>}</div>
   </>;
 }

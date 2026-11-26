@@ -29,7 +29,10 @@ export async function POST(req: NextRequest) {
   const db = adminDb();
   const buf = Buffer.from(await file.arrayBuffer());
   const { error } = await db.storage.from(bucket).upload(path, buf, { contentType, upsert: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('HER9AL ADMIN MEDIA UPLOAD ERROR', { code: (error as any)?.statusCode });
+    return NextResponse.json({ error: 'Could not upload file.' }, { status: 500 });
+  }
   if (kind === 'master') return NextResponse.json({ path });
   const { data } = db.storage.from(bucket).getPublicUrl(path);
   return NextResponse.json({ path, url: data.publicUrl });

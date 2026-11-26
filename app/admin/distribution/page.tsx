@@ -3,17 +3,19 @@
 import SiteHeader from '@/components/SiteHeader';
 import { useEffect, useState } from 'react';
 import { STATUS_LABEL } from '@/lib/distribution';
+import { allowedAdminStatuses } from '@/lib/release-workflow';
 
 export default function AdminDistribution() {
   const [items, setItems] = useState<any[]>([]);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [msg, setMsg] = useState('');
   const [viewerRole, setViewerRole] = useState('');
 
   const load = () => fetch('/api/admin/releases', { cache: 'no-store' }).then(async r => {
     if (r.status === 401 || r.status === 403) { location.href = '/login'; return { releases: [] }; }
     return r.json();
-  }).then(j => { setItems(j.releases || []); setViewerRole(j.viewerRole || ''); setReady(true); });
+  }).then(j => { setItems(j.releases || []); setViewerRole(j.viewerRole || ''); setReady(true); }).catch(() => { setLoadError(true); setReady(true); });
   useEffect(() => { load(); }, []);
 
   const edit = (id: string, patch: any) => setItems(s => s.map(r => r.id === id ? { ...r, ...patch } : r));
@@ -38,7 +40,12 @@ export default function AdminDistribution() {
         <div className="panel dist-disclaimer"><div><strong>Manual delivery mode</strong><p>No automatic Spotify/Apple delivery adapter is implemented. Download approved assets, deliver them through the licensed distributor account, and only then choose Delivery package prepared or Live (confirmed). Editors may review; only owners/admins can confirm delivery.</p></div></div>
         {msg && <div className="dist-ok">{msg}</div>}
         <div className="library-list">
-          {items.map(r => (
+          {!ready && !loadError && <div className="empty-state" role="status">Loading the distribution queue…</div>}
+          {loadError && <div className="empty-state" role="alert">The distribution queue could not be loaded right now.</div>}
+          {items.map(r => {
+            const allowed = allowedAdminStatuses(r.status);
+            const statuses = allowed.includes(r.status) ? allowed : [r.status, ...allowed];
+            return (
             <article className="panel dist-admin" key={r.id}>
               <div className="dist-release"><img src={r.cover_url} alt="" />
                 <div><h3>{r.title} — {r.primary_artist}</h3>
@@ -46,7 +53,7 @@ export default function AdminDistribution() {
                   <p>Artist: {r.artist?.artist_name} ({r.artist?.country || '—'}) · rights confirmed: {r.rights_confirmed ? 'yes' : 'no'}</p>
                   <div className="dist-links">{r.files.map((f: any, i: number) => f.url && <a key={i} href={f.url} target="_blank" rel="noreferrer">⬇ {f.title}</a>)}</div></div></div>
               <div className="form-grid">
-                 <label>Status<select value={r.status} onChange={e => edit(r.id, { status: e.target.value })}>{Object.entries(STATUS_LABEL).filter(([k]) => k !== 'draft').map(([k, v]) => <option key={k} value={k} disabled={['delivered','live'].includes(k)&&!['owner','admin'].includes(viewerRole)}>{v}</option>)}</select></label>
+                 <label>Status<select value={r.status} onChange={e => edit(r.id, { status: e.target.value })}>{statuses.map(k => <option key={k} value={k} disabled={k === r.status || (['delivered','live'].includes(k)&&!['owner','admin'].includes(viewerRole))}>{STATUS_LABEL[k] || k}</option>)}</select></label>
                 <label>UPC<input value={r.upc || ''} onChange={e => edit(r.id, { upc: e.target.value })} /></label>
                 <label>Spotify link<input value={r.store_links?.spotify || ''} onChange={e => edit(r.id, { store_links: { ...r.store_links, spotify: e.target.value } })} /></label>
                 <label>Apple Music link<input value={r.store_links?.apple || ''} onChange={e => edit(r.id, { store_links: { ...r.store_links, apple: e.target.value } })} /></label>
@@ -61,8 +68,9 @@ export default function AdminDistribution() {
                 <button className="secondary small" onClick={() => { navigator.clipboard.writeText(JSON.stringify(r.package, null, 2)); setMsg('Delivery package copied.'); }}>Copy delivery package</button>
               </div>
             </article>
-          ))}
-          {ready && !items.length && <div className="empty-state">No submissions yet.</div>}
+            );
+          })}
+          {ready && !loadError && !items.length && <div className="empty-state">No submissions yet.</div>}
         </div>
       </section>
     </main>

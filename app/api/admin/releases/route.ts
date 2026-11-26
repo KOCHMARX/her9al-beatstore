@@ -4,7 +4,7 @@ import { adminDb } from '@/lib/db';
 import { ADMIN_REVIEW_STATUSES, DELIVERY_STATUSES, STATUS_LABEL, clean, cleanUrl, Track } from '@/lib/distribution';
 import { buildDeliveryPackage } from '@/lib/distributor';
 import { isUuid, rateLimit, rateLimitResponse, rejectCrossSite } from '@/lib/api-security';
-import { artistVisibleAuditNote, buildAuditEvent } from '@/lib/release-workflow';
+import { artistVisibleAuditNote, buildAuditEvent, canAdminDeliver, canAdminReview } from '@/lib/release-workflow';
 
 export const runtime = 'nodejs';
 
@@ -86,6 +86,16 @@ export async function PATCH(req: NextRequest) {
   const db = adminDb();
   const { data: current } = await db.from('releases').select('status').eq('id', body.id).maybeSingle();
   if (!current) return NextResponse.json({ error: 'Release not found.' }, { status: 404 });
+  const target = String(body.status);
+  if ((ADMIN_REVIEW_STATUSES as readonly string[]).includes(target) && !canAdminReview(current.status)) {
+    return NextResponse.json({ error: 'This release cannot be reviewed from its current status.' }, { status: 409 });
+  }
+  if ((DELIVERY_STATUSES as readonly string[]).includes(target) && !canAdminDeliver(current.status)) {
+    return NextResponse.json({ error: 'Delivery can only be recorded after approval.' }, { status: 409 });
+  }
+  if (target === 'live' && current.status !== 'delivered') {
+    return NextResponse.json({ error: 'Confirm the delivery package before marking a release live.' }, { status: 409 });
+  }
 
   const links = body.store_links && typeof body.store_links === 'object' ? body.store_links : {};
   const now = new Date().toISOString();

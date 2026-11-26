@@ -11,7 +11,10 @@ export async function GET() {
   if (!isStaff(u)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   const db = adminDb();
   const { data, error } = await db.from('albums').select('*').order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('HER9AL ADMIN ALBUMS QUERY ERROR', { code: error.code });
+    return NextResponse.json({ error: 'Could not load albums.' }, { status: 500 });
+  }
   return NextResponse.json({ albums: data || [] }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
@@ -31,7 +34,10 @@ export async function POST(req: NextRequest) {
     cover_url: clean(b.cover_url, 1000) || null,
     published: b.published !== false,
   }).select('*').single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error || !data) {
+    console.error('HER9AL ADMIN ALBUM CREATE ERROR', { code: error?.code });
+    return NextResponse.json({ error: 'Could not create album.' }, { status: 500 });
+  }
   return NextResponse.json({ album: data });
 }
 
@@ -46,6 +52,9 @@ export async function DELETE(req: NextRequest) {
   if (!isUuid(id)) return NextResponse.json({ error: 'invalid id' }, { status: 400 });
   const db = adminDb();
   const { error } = await db.from('albums').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('HER9AL ADMIN ALBUM DELETE ERROR', { code: error.code });
+    return NextResponse.json({ error: 'Could not delete album.' }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

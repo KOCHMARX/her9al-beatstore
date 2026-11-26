@@ -19,6 +19,12 @@ export function newEmailAccountRole(): 'customer' {
   return 'customer';
 }
 
+export function assignableRolesFor(actorRole: unknown): string[] {
+  if (actorRole === 'owner') return [...ASSIGNABLE_ROLES];
+  if (actorRole === 'admin') return ['customer', 'editor'];
+  return [];
+}
+
 export function canAssignRole(actorRole: unknown, targetRole: unknown): boolean {
   if (typeof targetRole !== 'string' || !(ASSIGNABLE_ROLES as readonly string[]).includes(targetRole)) return false;
   if (actorRole === 'owner') return true;

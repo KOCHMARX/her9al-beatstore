@@ -11,8 +11,11 @@ export async function GET() {
   if (!isManager(u)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   const db = adminDb();
   const { data, error } = await db.from('app_users').select('id,email,display_name,avatar_url,role,provider,created_at').order('created_at', { ascending: false }).limit(200);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ users: data || [] }, { headers: { 'Cache-Control': 'no-store' } });
+  if (error) {
+    console.error('HER9AL ADMIN USERS QUERY ERROR', { code: error.code });
+    return NextResponse.json({ error: 'Could not load users.' }, { status: 500 });
+  }
+  return NextResponse.json({ users: data || [], viewerRole: u.role }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -33,6 +36,9 @@ export async function PATCH(req: NextRequest) {
 
   const db = adminDb();
   const { error } = await db.from('app_users').update({ role: body.role, updated_at: new Date().toISOString() }).eq('id', body.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('HER9AL ADMIN ROLE UPDATE ERROR', { code: error.code });
+    return NextResponse.json({ error: 'Could not update role.' }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

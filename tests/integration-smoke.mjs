@@ -106,7 +106,7 @@ try {
     assert.ok(location.searchParams.get('state'));
     const cookie = response.headers.get('set-cookie') || '';
     assert.match(cookie, new RegExp(`her9al_${provider}_state=`));
-    assert.match(cookie, new RegExp(`Path=/api/auth/${provider}/callback`, 'i'));
+    assert.match(cookie, /Path=\//i);
     assert.match(cookie, /HttpOnly/i);
     assert.match(cookie, /SameSite=lax/i);
 

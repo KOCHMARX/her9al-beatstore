@@ -12,7 +12,10 @@ export async function GET() {
   if (!isStaff(u)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   const db = adminDb();
   const { data, error } = await db.from('beats').select('*,licenses(*),albums(id,title,cover_url)').order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('HER9AL ADMIN BEATS QUERY ERROR', { code: error.code });
+    return NextResponse.json({ error: 'Could not load beats.' }, { status: 500 });
+  }
   return NextResponse.json({ beats: data || [] }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
@@ -118,6 +121,9 @@ export async function DELETE(req: NextRequest) {
   if (!isUuid(id)) return NextResponse.json({ error: 'invalid id' }, { status: 400 });
   const db = adminDb();
   const { error } = await db.from('beats').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('HER9AL ADMIN BEAT DELETE ERROR', { code: error.code });
+    return NextResponse.json({ error: 'Could not delete beat.' }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

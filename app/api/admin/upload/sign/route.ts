@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
   const bucket = kind === 'cover' ? 'beat-covers' : kind === 'preview' ? 'beat-previews' : 'beat-masters';
   const db = adminDb();
   const { data, error } = await db.storage.from(bucket).createSignedUploadUrl(path);
-  if (error || !data) return NextResponse.json({ error: error?.message || 'Could not prepare upload.' }, { status: 500 });
+  if (error || !data) {
+    console.error('HER9AL ADMIN SIGNED UPLOAD ERROR', { code: (error as any)?.statusCode });
+    return NextResponse.json({ error: 'Could not prepare upload.' }, { status: 500 });
+  }
   const publicUrl = kind === 'master' ? null : db.storage.from(bucket).getPublicUrl(path).data.publicUrl;
   return NextResponse.json({ bucket, path, token: data.token, signedUrl: data.signedUrl, publicUrl, contentType });
 }

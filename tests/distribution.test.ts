@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ADMIN_REVIEW_STATUSES, DELIVERY_STATUSES, EDITABLE_STATUSES, STATUS_LABEL, STATUSES, canonicalUploadType, clean, cleanUrl, isValidReleaseDate } from '../lib/distribution.ts';
-import { artistVisibleAuditNote, buildAuditEvent, canAdminReview, canArtistEdit, isDeliveryStatus } from '../lib/release-workflow.ts';
+import { allowedAdminStatuses, artistVisibleAuditNote, buildAuditEvent, canAdminDeliver, canAdminReview, canArtistEdit, isDeliveryStatus } from '../lib/release-workflow.ts';
 
 test('upload MIME types are canonicalized only from supported media extensions', () => {
   assert.equal(canonicalUploadType('audio', '', 'master.wav'), 'audio/wav');
@@ -36,8 +36,15 @@ test('workflow statuses distinguish drafts, changes requested and rejection', ()
 test('review permissions and audit payloads follow the workflow', () => {
   assert.equal(canArtistEdit('changes_requested'), true);
   assert.equal(canArtistEdit('submitted'), false);
-  assert.equal(canAdminReview('approved'), true);
+  assert.equal(canAdminReview('submitted'), true);
   assert.equal(canAdminReview('draft'), false);
+  assert.equal(canAdminReview('approved'), false);
+  assert.equal(canAdminDeliver('approved'), true);
+  assert.equal(canAdminDeliver('delivered'), true);
+  assert.equal(canAdminDeliver('in_review'), false);
+  assert.deepEqual(allowedAdminStatuses('submitted'), ['in_review', 'changes_requested', 'approved', 'rejected']);
+  assert.deepEqual(allowedAdminStatuses('approved'), ['delivered']);
+  assert.deepEqual(allowedAdminStatuses('draft'), []);
   assert.equal(isDeliveryStatus('delivered'), true);
   assert.equal(isDeliveryStatus('in_review'), false);
   assert.deepEqual(buildAuditEvent({ releaseId: 'r1', actorId: 'u1', from: 'submitted', to: 'approved', note: 'ok' }), {

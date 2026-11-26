@@ -79,6 +79,7 @@ body{padding-bottom:104px}
 .audio-waveform{height:64px;width:100%;display:flex;align-items:center;gap:2px;background:transparent;border:0;padding:0;cursor:pointer;overflow:hidden}
 .audio-waveform i{display:block;flex:1;min-width:1px;max-width:4px;border-radius:2px;background:#777781;opacity:.72;transition:background .12s,opacity .12s}
 .audio-waveform i.played{background:#ff1744;opacity:1}
+.audio-waveform .waveform-status{font-size:12px;color:#8c8c96;letter-spacing:.02em}
 .global-waveform{height:48px;min-width:220px}
 .detail-wave-wrap{border:1px solid #2a2a31;border-radius:16px;background:#101014;padding:14px 16px;margin:18px 0}
 .detail-wave-real{height:90px}

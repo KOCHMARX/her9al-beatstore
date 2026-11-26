@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { checkoutLicenseRejection, publishedBeatRejection, visibleCatalogLicense } from '../lib/beatstore-policy.ts';
 import { canonicalAdminUploadType, hasImageSignature } from '../lib/upload-policy.ts';
+import { waveformFeedback } from '../lib/waveform-policy.ts';
 
 const uuid = '11111111-2222-4333-8444-555555555555';
 
@@ -48,4 +49,12 @@ test('image uploads verify real bytes and extension-derived MIME', () => {
   assert.equal(hasImageSignature('image/webp', Uint8Array.from([...Buffer.from('RIFF'), 0, 0, 0, 0, ...Buffer.from('WEBP')])), true);
   assert.equal(hasImageSignature('image/png', Uint8Array.from(Buffer.from('<svg/>'))), false);
   assert.equal(hasImageSignature('image/tiff', Uint8Array.from([1, 2, 3])), false);
+});
+
+test('waveforms never show generated bars as real audio data', () => {
+  assert.equal(waveformFeedback('idle', false), 'Preview waveform unavailable');
+  assert.equal(waveformFeedback('loading', false), 'Loading waveform…');
+  assert.equal(waveformFeedback('unavailable', false), 'Preview waveform unavailable');
+  assert.equal(waveformFeedback('ready', false), 'Preview waveform unavailable');
+  assert.equal(waveformFeedback('ready', true), null);
 });

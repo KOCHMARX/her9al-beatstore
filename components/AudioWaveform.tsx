@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { waveformFeedback, type WaveformStatus } from '@/lib/waveform-policy';
 
 type Props = {
   src?: string | null;
@@ -11,10 +12,6 @@ type Props = {
 };
 
 const cache = new Map<string, number[]>();
-
-function fallbackBars(count: number) {
-  return Array.from({ length: count }, (_, i) => 0.2 + (((i * 47 + 19) % 78) / 100));
-}
 
 async function buildPeaks(src: string, count: number) {
   const key = `${src}::${count}`;
@@ -47,34 +44,53 @@ async function buildPeaks(src: string, count: number) {
 }
 
 export default function AudioWaveform({ src, progress = 0, bars = 120, className = '', onSeekRatio }: Props) {
-  const placeholder = useMemo(() => fallbackBars(bars), [bars]);
-  const [peaks, setPeaks] = useState<number[]>(placeholder);
+  const [peaks, setPeaks] = useState<number[] | null>(null);
+  const [status, setStatus] = useState<WaveformStatus>('idle');
+  const feedback = waveformFeedback(status, Boolean(peaks));
+  const canSeek = Boolean(onSeekRatio) && status === 'ready' && Boolean(peaks);
 
   useEffect(() => {
     let cancelled = false;
-    setPeaks(placeholder);
-    if (!src) return;
+    setPeaks(null);
+    if (!src) {
+      setStatus('unavailable');
+      return;
+    }
+    setStatus('loading');
     buildPeaks(src, bars)
-      .then(next => { if (!cancelled) setPeaks(next); })
-      .catch(() => {});
+      .then(next => {
+        if (!cancelled) {
+          setPeaks(next);
+          setStatus('ready');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPeaks(null);
+          setStatus('unavailable');
+        }
+      });
     return () => { cancelled = true; };
-  }, [src, bars, placeholder]);
+  }, [src, bars]);
 
   return (
     <button
       type="button"
       className={`audio-waveform ${className}`.trim()}
+      disabled={!canSeek}
       onClick={(e) => {
-        if (!onSeekRatio) return;
+        if (!canSeek || !onSeekRatio) return;
         const rect = e.currentTarget.getBoundingClientRect();
         onSeekRatio(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
       }}
-      aria-label="Audio waveform"
+      aria-label={feedback ? `Waveform: ${feedback}` : 'Audio waveform'}
     >
-      {peaks.map((peak, index) => {
-        const ratio = index / Math.max(1, peaks.length - 1);
-        return <i key={index} className={ratio <= progress ? 'played' : ''} style={{ height: `${Math.round(peak * 92)}%` }} />;
-      })}
+      {feedback
+        ? <span className="waveform-status" role={status === 'loading' ? 'status' : undefined}>{feedback}</span>
+        : peaks?.map((peak, index) => {
+            const ratio = index / Math.max(1, peaks.length - 1);
+            return <i key={index} className={ratio <= progress ? 'played' : ''} style={{ height: `${Math.round(peak * 92)}%` }} />;
+          })}
     </button>
   );
 }

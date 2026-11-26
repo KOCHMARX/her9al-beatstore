@@ -44,6 +44,13 @@ export default async function Home() {
         <div className="section-head"><div><span>FEATURED</span><h2>Latest drops</h2></div><Link href="/beats">View all</Link></div>
         <BeatGrid compact />
       </section>
+      <section className="section dist-tight">
+        <div className="section-head"><div><span>NEW · DISTRIBUTION</span><h2>Your music, on more stages.</h2><p className="subcopy">Submit your music for distribution with artwork, metadata and review tracking in one place.</p></div><Link href="/distribution" className="secondary small">Open Distribution Room</Link></div>
+        <div className="panel dist-promo">
+          <div><h3>Built for independent artists.</h3><p>Create your artist profile, upload release-ready tracks and follow every status update. Store delivery is prepared manually through a licensed distributor; submission never guarantees placement.</p></div>
+          <div className="cta"><Link href="/distribution/studio" className="primary">Start a release</Link><Link href="/distribution" className="secondary">Learn more</Link></div>
+        </div>
+      </section>
       <section id="rappers" className="rappers-section">
         <div className="rappers-head">
           <span>COLLABORATIONS</span>

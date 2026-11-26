@@ -19,11 +19,12 @@ export default function AdminDistribution() {
   const edit = (id: string, patch: any) => setItems(s => s.map(r => r.id === id ? { ...r, ...patch } : r));
   const save = async (r: any) => {
     const deliveryStatus = r.status === 'delivered' || r.status === 'live';
-    const deliveryConfirmed = !deliveryStatus || window.confirm('Confirm only if this release was actually delivered through a licensed distributor. Continue?');
-    if (!deliveryConfirmed) return;
+    const needsReason = r.status === 'rejected' || r.status === 'changes_requested';
+    if (deliveryStatus && !window.confirm('Confirm only if this release was actually delivered through a licensed distributor. Continue?')) return;
+    if (needsReason && !String(r.reject_reason || '').trim() && !window.confirm('Save this status without a reason for the artist? Continue?')) return;
     setMsg('Saving…');
     const res = await fetch('/api/admin/releases', { method: 'PATCH', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ id: r.id, status: r.status, admin_note: r.admin_note, upc: r.upc, store_links: r.store_links, delivery_confirmed: deliveryStatus }) });
+      body: JSON.stringify({ id: r.id, status: r.status, admin_note: r.admin_note, reject_reason: r.reject_reason, private_note: r.private_note, upc: r.upc, store_links: r.store_links, delivery_confirmed: deliveryStatus }) });
     const j = await res.json().catch(() => ({}));
     setMsg(res.ok ? 'Saved.' : j.error || 'Error.');
   };
@@ -45,13 +46,16 @@ export default function AdminDistribution() {
                   <p>Artist: {r.artist?.artist_name} ({r.artist?.country || '—'}) · rights confirmed: {r.rights_confirmed ? 'yes' : 'no'}</p>
                   <div className="dist-links">{r.files.map((f: any, i: number) => f.url && <a key={i} href={f.url} target="_blank" rel="noreferrer">⬇ {f.title}</a>)}</div></div></div>
               <div className="form-grid">
-                 <label>Status<select value={r.status} onChange={e => edit(r.id, { status: e.target.value })}>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k} disabled={['delivered','live'].includes(k)&&!['owner','admin'].includes(viewerRole)}>{v}</option>)}</select></label>
+                 <label>Status<select value={r.status} onChange={e => edit(r.id, { status: e.target.value })}>{Object.entries(STATUS_LABEL).filter(([k]) => k !== 'draft').map(([k, v]) => <option key={k} value={k} disabled={['delivered','live'].includes(k)&&!['owner','admin'].includes(viewerRole)}>{v}</option>)}</select></label>
                 <label>UPC<input value={r.upc || ''} onChange={e => edit(r.id, { upc: e.target.value })} /></label>
                 <label>Spotify link<input value={r.store_links?.spotify || ''} onChange={e => edit(r.id, { store_links: { ...r.store_links, spotify: e.target.value } })} /></label>
                 <label>Apple Music link<input value={r.store_links?.apple || ''} onChange={e => edit(r.id, { store_links: { ...r.store_links, apple: e.target.value } })} /></label>
                 <label>YouTube link<input value={r.store_links?.youtube || ''} onChange={e => edit(r.id, { store_links: { ...r.store_links, youtube: e.target.value } })} /></label>
                 <label>Note to artist<input value={r.admin_note || ''} onChange={e => edit(r.id, { admin_note: e.target.value })} /></label>
+                <label>Reason (shown to artist)<input value={r.reject_reason || ''} onChange={e => edit(r.id, { reject_reason: e.target.value })} /></label>
+                <label>Private staff note<input value={r.private_note || ''} onChange={e => edit(r.id, { private_note: e.target.value })} /></label>
               </div>
+              {r.events?.length > 0 && <div className="dist-history"><b>Status history</b><ul>{r.events.map((e: any) => <li key={e.id}>{e.from_status || '—'} → {e.to_status} · {new Date(e.created_at).toLocaleString()}{e.note ? ` — ${e.note}` : ''}</li>)}</ul></div>}
               <div className="cta">
                 <button className="primary small" onClick={() => save(r)}>Save</button>
                 <button className="secondary small" onClick={() => { navigator.clipboard.writeText(JSON.stringify(r.package, null, 2)); setMsg('Delivery package copied.'); }}>Copy delivery package</button>

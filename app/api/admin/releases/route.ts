@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser, isManager, isStaff } from '@/lib/current-user';
 import { adminDb } from '@/lib/db';
-import { STATUSES, clean, cleanUrl, Track } from '@/lib/distribution';
+import { ADMIN_REVIEW_STATUSES, DELIVERY_STATUSES, STATUS_LABEL, clean, cleanUrl, Track } from '@/lib/distribution';
 import { buildDeliveryPackage } from '@/lib/distributor';
 import { isUuid, rateLimit, rateLimitResponse, rejectCrossSite } from '@/lib/api-security';
+import { buildAuditEvent } from '@/lib/release-workflow';
 
 export const runtime = 'nodejs';
 
@@ -32,13 +33,30 @@ export async function GET() {
     : { data: [] };
   const urlByPath = new Map((signedFiles || []).map(file => [file.path, file.signedUrl || null]));
 
+  const { data: events } = releases.length
+    ? await db.from('release_events').select('id,release_id,from_status,to_status,note,created_at')
+      .in('release_id', releases.map(release => release.id)).order('created_at', { ascending: false }).limit(500)
+    : { data: [] };
+  const eventsByRelease = new Map<string, any[]>();
+  for (const event of events || []) {
+    const list = eventsByRelease.get(event.release_id) || [];
+    list.push(event);
+    eventsByRelease.set(event.release_id, list);
+  }
+
   const output = releases.map(release => {
     const artist = artistByUser.get(release.user_id) || null;
     const tracks = (Array.isArray(release.tracks) ? release.tracks : []) as Track[];
     const files = tracks.map(track => ({ title: track.title, url: urlByPath.get(track.audio_path) || null }));
-    return { ...release, artist, files, package: buildDeliveryPackage(release, artist) };
+    return {
+      ...release,
+      artist,
+      files,
+      events: eventsByRelease.get(release.id) || [],
+      package: buildDeliveryPackage(release, artist),
+    };
   });
-  return NextResponse.json({ releases: output, viewerRole: user.role }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ releases: output, viewerRole: user.role, statusLabels: STATUS_LABEL }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -51,21 +69,31 @@ export async function PATCH(req: NextRequest) {
   if (!limited.allowed) return rateLimitResponse(limited.retryAfter);
 
   const body = await req.json().catch(() => ({}));
-  if (!isUuid(body.id) || !STATUSES.includes(body.status)) {
-    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
-  }
-  if (['delivered', 'live'].includes(body.status)) {
+  const validStatus = (ADMIN_REVIEW_STATUSES as readonly string[]).includes(body.status)
+    || (DELIVERY_STATUSES as readonly string[]).includes(body.status);
+  if (!isUuid(body.id) || !validStatus) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+
+  const needsReason = body.status === 'rejected' || body.status === 'changes_requested';
+  const reason = clean(body.reject_reason, 600);
+  if (needsReason && !reason) return NextResponse.json({ error: 'A reason for the artist is required.' }, { status: 400 });
+  if ((DELIVERY_STATUSES as readonly string[]).includes(body.status)) {
     if (!isManager(user)) return NextResponse.json({ error: 'Only an owner or admin can confirm delivery.' }, { status: 403 });
     if (body.delivery_confirmed !== true) {
       return NextResponse.json({ error: 'Confirm real licensed-distributor delivery before using this status.' }, { status: 400 });
     }
   }
 
+  const db = adminDb();
+  const { data: current } = await db.from('releases').select('status').eq('id', body.id).maybeSingle();
+  if (!current) return NextResponse.json({ error: 'Release not found.' }, { status: 404 });
+
   const links = body.store_links && typeof body.store_links === 'object' ? body.store_links : {};
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = {
     status: body.status,
     admin_note: clean(body.admin_note, 600),
+    reject_reason: needsReason ? reason : null,
+    private_note: clean(body.private_note, 600),
     upc: clean(body.upc, 20),
     store_links: {
       spotify: cleanUrl(links.spotify),
@@ -76,13 +104,35 @@ export async function PATCH(req: NextRequest) {
     reviewed_at: now,
     updated_at: now,
   };
-  if (['delivered', 'live'].includes(body.status)) patch.delivered_at = now;
+  if ((DELIVERY_STATUSES as readonly string[]).includes(body.status)) patch.delivered_at = now;
 
-  const { data, error } = await adminDb().from('releases').update(patch).eq('id', body.id).select('id').maybeSingle();
+  let { data, error } = await db.from('releases').update(patch).eq('id', body.id).select('id').maybeSingle();
+  if (error?.code === '42703') {
+    if (needsReason) {
+      return NextResponse.json({ error: 'Reasons require the v12 workflow schema on this project.' }, { status: 503 });
+    }
+    const legacy = { ...patch };
+    delete legacy.reject_reason;
+    delete legacy.private_note;
+    ({ data, error } = await db.from('releases').update(legacy).eq('id', body.id).select('id').maybeSingle());
+  }
   if (error) {
     console.error('HER9AL RELEASE REVIEW ERROR', { code: error.code });
     return NextResponse.json({ error: 'Could not update release.' }, { status: 400 });
   }
   if (!data) return NextResponse.json({ error: 'Release not found.' }, { status: 404 });
+
+  const audit = buildAuditEvent({
+    releaseId: body.id,
+    actorId: user.id,
+    from: current.status,
+    to: body.status,
+    note: [reason, clean(body.private_note, 200)].filter(Boolean).join(' | ') || null,
+  });
+  if (audit) {
+    const { error: eventError } = await db.from('release_events').insert(audit);
+    if (eventError) console.warn('HER9AL RELEASE AUDIT EVENT SKIPPED', { code: eventError.code });
+  }
+
   return NextResponse.json({ ok: true });
 }

@@ -6,14 +6,19 @@ export const RELEASE_TYPES = ['single','ep','album'] as const;
 export const LANGUAGES = ['English','Arabic','French','Spanish','Portuguese','German','Italian','Turkish','Other'] as const;
 
 export const STATUS_LABEL: Record<string, string> = {
+  draft: 'Draft',
   submitted: 'Submitted',
   in_review: 'In review',
+  changes_requested: 'Changes requested',
   approved: 'Approved',
   delivered: 'Sent to stores',
   live: 'Live',
-  rejected: 'Needs changes',
+  rejected: 'Rejected',
 };
 export const STATUSES = Object.keys(STATUS_LABEL);
+export const EDITABLE_STATUSES = ['draft', 'changes_requested', 'rejected'] as const;
+export const ADMIN_REVIEW_STATUSES = ['in_review', 'changes_requested', 'approved', 'rejected'] as const;
+export const DELIVERY_STATUSES = ['delivered', 'live'] as const;
 
 export const LIMITS = { audio: 300 * 1024 * 1024, art: 10 * 1024 * 1024, tracks: 20 };
 export const AUDIO_TYPES = ['audio/wav','audio/x-wav','audio/wave','audio/flac','audio/x-flac','audio/mpeg'];

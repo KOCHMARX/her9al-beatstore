@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canonicalUploadType, clean, cleanUrl, isValidReleaseDate } from '../lib/distribution.ts';
+import { ADMIN_REVIEW_STATUSES, DELIVERY_STATUSES, EDITABLE_STATUSES, STATUS_LABEL, STATUSES, canonicalUploadType, clean, cleanUrl, isValidReleaseDate } from '../lib/distribution.ts';
+import { buildAuditEvent, canAdminReview, canArtistEdit, isDeliveryStatus } from '../lib/release-workflow.ts';
 
 test('upload MIME types are canonicalized only from supported media extensions', () => {
   assert.equal(canonicalUploadType('audio', '', 'master.wav'), 'audio/wav');
@@ -18,6 +19,31 @@ test('release date validation is strict and at least seven UTC days ahead', () =
   assert.equal(isValidReleaseDate('2026-12-01', now), false);
   assert.equal(isValidReleaseDate('2026-02-30', now), false);
   assert.equal(isValidReleaseDate('not-a-date', now), false);
+});
+
+test('workflow statuses distinguish drafts, changes requested and rejection', () => {
+  assert.equal(STATUS_LABEL.draft, 'Draft');
+  assert.equal(STATUS_LABEL.changes_requested, 'Changes requested');
+  assert.equal(STATUS_LABEL.rejected, 'Rejected');
+  assert.equal(STATUS_LABEL.delivered, 'Sent to stores');
+  assert.ok(STATUSES.includes('draft'));
+  assert.deepEqual(EDITABLE_STATUSES, ['draft', 'changes_requested', 'rejected']);
+  assert.ok(ADMIN_REVIEW_STATUSES.includes('changes_requested'));
+  assert.ok(DELIVERY_STATUSES.includes('live'));
+  assert.equal((ADMIN_REVIEW_STATUSES as readonly string[]).includes('draft'), false);
+});
+
+test('review permissions and audit payloads follow the workflow', () => {
+  assert.equal(canArtistEdit('changes_requested'), true);
+  assert.equal(canArtistEdit('submitted'), false);
+  assert.equal(canAdminReview('approved'), true);
+  assert.equal(canAdminReview('draft'), false);
+  assert.equal(isDeliveryStatus('delivered'), true);
+  assert.equal(isDeliveryStatus('in_review'), false);
+  assert.deepEqual(buildAuditEvent({ releaseId: 'r1', actorId: 'u1', from: 'submitted', to: 'approved', note: 'ok' }), {
+    release_id: 'r1', actor_id: 'u1', from_status: 'submitted', to_status: 'approved', note: 'ok',
+  });
+  assert.equal(buildAuditEvent({ releaseId: '', actorId: 'u1', from: null, to: 'approved' }), null);
 });
 
 test('text and URL cleaners bound input and reject unsafe protocols', () => {

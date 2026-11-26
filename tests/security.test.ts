@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import test from 'node:test';
-import { createSessionToken, stateMatches, verifySessionToken } from '../lib/auth-session.ts';
+import { createSessionToken, makeState, verifySessionToken } from '../lib/auth-session.ts';
 import { hashPassword, verifyPassword } from '../lib/password.ts';
 import { validStripeSignature } from '../lib/stripe-security.ts';
 
@@ -13,15 +13,17 @@ test('session tokens round-trip and reject tampering', () => {
   assert.equal(payload?.provider, 'email');
   const [body, signature] = token.split('.');
   assert.equal(verifySessionToken(`${body}x.${signature}`), null);
-  assert.equal(verifySessionToken(`${body}.${signature.slice(0, -1)}x`), null);
+  const flipped = `${signature[0] === 'A' ? 'B' : 'A'}${signature.slice(1)}`;
+  assert.equal(verifySessionToken(`${body}.${flipped}`), null);
   assert.equal(verifySessionToken('not-a-session'), null);
 });
 
-test('OAuth state comparison accepts exact values only', () => {
-  assert.equal(stateMatches('same-state', 'same-state'), true);
-  assert.equal(stateMatches('same-state', 'other-state'), false);
-  assert.equal(stateMatches('short', 'longer'), false);
-  assert.equal(stateMatches(null, 'state'), false);
+test('OAuth state values are unique and URL-safe', () => {
+  const first = makeState();
+  const second = makeState();
+  assert.notEqual(first, second);
+  assert.match(first, /^[A-Za-z0-9_-]{32}$/);
+  assert.match(second, /^[A-Za-z0-9_-]{32}$/);
 });
 
 test('scrypt password hashes verify without storing plaintext', async () => {

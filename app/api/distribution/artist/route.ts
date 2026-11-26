@@ -31,7 +31,9 @@ export async function PUT(req: NextRequest) {
   if (artistName.length < 2) return NextResponse.json({ error: 'Artist name is required.' }, { status: 400 });
   const requestedGenre = clean(body.main_genre, 40);
   const mainGenre = (GENRES as readonly string[]).includes(requestedGenre) ? requestedGenre : 'Hip Hop';
-  const row = {
+  const imageUrl = body.image_url ? cleanUrl(body.image_url) : '';
+  if (body.image_url && !imageUrl) return NextResponse.json({ error: 'Invalid artist image URL.' }, { status: 400 });
+  const row: Record<string, unknown> = {
     user_id: user.id,
     artist_name: artistName,
     bio: clean(body.bio, 1000),
@@ -43,7 +45,13 @@ export async function PUT(req: NextRequest) {
     youtube_url: cleanUrl(body.youtube_url),
     updated_at: new Date().toISOString(),
   };
-  const { data, error } = await adminDb().from('artist_profiles').upsert(row, { onConflict: 'user_id' }).select('*').single();
+  if (imageUrl) row.image_url = imageUrl;
+  const db = adminDb();
+  let { data, error } = await db.from('artist_profiles').upsert(row, { onConflict: 'user_id' }).select('*').single();
+  if (error?.code === '42703') {
+    delete row.image_url;
+    ({ data, error } = await db.from('artist_profiles').upsert(row, { onConflict: 'user_id' }).select('*').single());
+  }
   if (error) {
     console.error('HER9AL ARTIST PROFILE ERROR', { code: error.code });
     return NextResponse.json({ error: 'Could not save artist profile.' }, { status: 400 });

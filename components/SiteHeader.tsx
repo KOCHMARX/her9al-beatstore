@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown, Library, LogOut, Settings, Shield } from 'lucide-react';
+import { ChevronDown, Disc3, Library, LogOut, Settings, Shield, UploadCloud } from 'lucide-react';
 
 type Me = { id: string; display_name?: string | null; email?: string | null; avatar_url?: string | null; role?: string } | null;
 
@@ -45,6 +45,7 @@ export default function SiteHeader() {
       <div className="navlinks">
         <Link href="/beats">Beats</Link>
         <Link href="/#rappers">Rappers</Link>
+        <Link href="/distribution">Distribution</Link>
         {user ? (
           <div className="profile-menu" ref={ref}>
             <button className="profile-trigger" onClick={() => setOpen(!open)}>
@@ -56,7 +57,9 @@ export default function SiteHeader() {
               <div className="profile-dropdown">
                 <Link href="/profile"><Settings size={15} /> Profile</Link>
                 <Link href="/library"><Library size={15} /> My beats</Link>
+                <Link href="/distribution/studio"><Disc3 size={15} /> My releases</Link>
                 {['owner', 'admin', 'editor'].includes(user.role || '') && <Link href="/admin"><Shield size={15} /> Admin</Link>}
+                {['owner', 'admin', 'editor'].includes(user.role || '') && <Link href="/admin/distribution"><UploadCloud size={15} /> Distribution queue</Link>}
                 <a href="/api/auth/logout"><LogOut size={15} /> Logout</a>
               </div>
             )}

@@ -41,7 +41,7 @@ export default function Distribution() {
         <div className="section-head"><div><span>WHY HER9AL</span><h2>Built for independent artists.</h2></div></div>
         <div className="dist-grid">
           {PERKS.map(([Icon, t, d]) => (
-            <div className="panel dist-card" key={t}><Icon size={22} color="#ff1838" /><h3>{t}</h3><p>{d}</p></div>
+            <div className="panel dist-card" key={t}><Icon size={22} className="dist-card-icon" /><h3>{t}</h3><p>{d}</p></div>
           ))}
         </div>
       </section>
@@ -54,7 +54,7 @@ export default function Distribution() {
           ))}
         </div>
         <div className="cta"><Link href="/distribution/studio" className="primary small"><UploadCloud size={16} /> Open the studio</Link></div>
-        <div className="panel dist-disclaimer"><ShieldCheck size={20} color="#ff1838" /><div><strong>Transparent delivery workflow</strong><p>HER9AL currently prepares releases for manual delivery through a licensed distributor. This website does not automatically upload to Spotify, Apple Music, or other stores, and submission does not guarantee acceptance.</p></div></div>
+        <div className="panel dist-disclaimer"><ShieldCheck size={20} className="dist-card-icon" /><div><strong>Transparent delivery workflow</strong><p>HER9AL currently prepares releases for manual delivery through a licensed distributor. This website does not automatically upload to Spotify, Apple Music, or other stores, and submission does not guarantee acceptance.</p></div></div>
       </section>
       <footer>© 2026 HER9AL. All rights reserved.</footer>
     </main>

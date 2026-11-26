@@ -62,3 +62,10 @@ export const sessionCookie = {
 export function makeState() {
   return crypto.randomBytes(24).toString('base64url');
 }
+
+export function stateMatches(saved: string | null | undefined, received: string | null | undefined) {
+  if (typeof saved !== 'string' || typeof received !== 'string' || !saved || !received) return false;
+  const expected = Buffer.from(saved);
+  const actual = Buffer.from(received);
+  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+}

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/db';
+import { allowedOrigins, preferredAppOrigin } from './origin-policy';
 
 type RateLimitOptions = {
   action: string;
@@ -84,16 +85,20 @@ export function rateLimitResponse(retryAfter: number) {
   );
 }
 
-function expectedOrigins(req: NextRequest) {
-  const origins = new Set<string>([req.nextUrl.origin]);
-  const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-  const proto = req.headers.get('x-forwarded-proto') || req.nextUrl.protocol.replace(':', '');
-  if (host && (proto === 'http' || proto === 'https')) origins.add(`${proto}://${host}`);
-  return origins;
+function originPolicy(req: NextRequest) {
+  return {
+    requestOrigin: req.nextUrl.origin,
+    host: req.headers.get('x-forwarded-host') || req.headers.get('host'),
+    proto: req.headers.get('x-forwarded-proto') || req.nextUrl.protocol.replace(':', ''),
+    appUrl: process.env.APP_URL,
+    vercelUrl: process.env.VERCEL_URL,
+    vercelBranchUrl: process.env.VERCEL_BRANCH_URL,
+    isProduction: process.env.NODE_ENV === 'production',
+  };
 }
 
-// SameSite cookies already block most cross-site writes. This additionally rejects
-// browser requests that explicitly identify themselves as cross-site.
+// SameSite cookies already block most cross-site writes. This also rejects explicit
+// cross-site requests and origins outside the app's own/Vercel deployment allowlist.
 export function rejectCrossSite(req: NextRequest) {
   const fetchSite = req.headers.get('sec-fetch-site');
   if (fetchSite === 'cross-site') {
@@ -103,23 +108,14 @@ export function rejectCrossSite(req: NextRequest) {
   const origin = req.headers.get('origin');
   if (!origin) return null;
   try {
-    if (expectedOrigins(req).has(new URL(origin).origin)) return null;
+    const received = new URL(origin).origin;
+    if (allowedOrigins(originPolicy(req)).includes(received)) return null;
   } catch {}
   return NextResponse.json({ error: 'Invalid request origin.' }, { status: 403 });
 }
 
 export function appOrigin(req: NextRequest) {
-  const configured = (process.env.APP_URL || '').trim().replace(/\/+$/, '');
-  if (configured) {
-    try {
-      const parsed = new URL(configured);
-      const loopback = ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
-      if (parsed.protocol === 'https:' || (parsed.protocol === 'http:' && (loopback || process.env.NODE_ENV !== 'production'))) {
-        return parsed.origin;
-      }
-    } catch {}
-  }
-  return req.nextUrl.origin;
+  return preferredAppOrigin(originPolicy(req)) || req.nextUrl.origin;
 }
 
 export function isUuid(value: unknown): value is string {

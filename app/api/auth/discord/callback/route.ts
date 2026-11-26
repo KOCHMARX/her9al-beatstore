@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSessionToken, sessionCookie } from '@/lib/auth-session';
+import { createSessionToken, sessionCookie, stateMatches } from '@/lib/auth-session';
 import { upsertOAuthUser } from '@/lib/db';
 export const runtime='nodejs';
 export async function GET(req:NextRequest){
  const code=req.nextUrl.searchParams.get('code'),state=req.nextUrl.searchParams.get('state'),saved=req.cookies.get('her9al_discord_state')?.value;
- if(!code||!state||!saved||state!==saved)return NextResponse.redirect(new URL('/login?error=discord_state',req.url));
+ if(!code||!stateMatches(saved,state))return NextResponse.redirect(new URL('/login?error=discord_state',req.url));
  const clientId=process.env.DISCORD_CLIENT_ID,clientSecret=process.env.DISCORD_CLIENT_SECRET;
  if(!clientId||!clientSecret)return NextResponse.redirect(new URL('/login?error=discord_config',req.url));
  const redirectUri=`${req.nextUrl.origin}/api/auth/discord/callback`;

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { verifySessionToken, sessionCookie } from '@/lib/auth-session';
 import { adminDb, AppUser } from '@/lib/db';
+import { canConfirmDelivery, canViewAdmin } from './role-policy';
 
 export async function currentUser(): Promise<AppUser|null> {
   const jar = await cookies();
@@ -11,9 +12,9 @@ export async function currentUser(): Promise<AppUser|null> {
   return data as AppUser | null;
 }
 
-export function isStaff(user: AppUser|null) {
-  return !!user && ['owner','admin','editor'].includes(user.role);
+export function isStaff(user: AppUser|null): user is AppUser {
+  return !!user && canViewAdmin(user.role);
 }
-export function isManager(user: AppUser|null) {
-  return !!user && ['owner','admin'].includes(user.role);
+export function isManager(user: AppUser|null): user is AppUser {
+  return !!user && canConfirmDelivery(user.role);
 }

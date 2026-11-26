@@ -38,17 +38,23 @@ export default function Admin() {
 
   useEffect(() => { load(); }, []);
 
-  const upload = (kind: string, file: File, target: 'beat' | 'album' = 'beat') => {
+  const upload = (kind: string, file: File, target: 'beat' | 'album' | 'catalog' = 'beat', catalogId?: string) => {
     setBusy(`Uploading ${kind}…`);
     setUploadState({ kind, name: file.name, progress: 0 });
     const fd = new FormData(); fd.append('kind', kind); fd.append('file', file);
     const xhr = new XMLHttpRequest(); xhr.open('POST', '/api/admin/upload');
     xhr.upload.onprogress = e => { if (e.lengthComputable) setUploadState({ kind, name: file.name, progress: Math.round((e.loaded / e.total) * 100) }); };
-    xhr.onload = () => {
+    xhr.onload = async () => {
       try {
         const j = JSON.parse(xhr.responseText || '{}');
         if (xhr.status < 200 || xhr.status >= 300) { alert(j.error || 'Upload failed'); setBusy(''); setUploadState(null); return; }
         if (target === 'album') setAlbumForm((x:any)=>({ ...x, cover_url:j.url }));
+        else if (target === 'catalog' && catalogId) {
+          const r = await fetch('/api/admin/beats', { method:'PATCH', headers:{'content-type':'application/json'}, body:JSON.stringify({ id:catalogId, master_path:j.path }) });
+          const p = await r.json();
+          if (!r.ok) { alert(p.error || 'Could not attach master'); setBusy(''); setUploadState(null); return; }
+          await load();
+        }
         else setForm((x:any)=>({ ...x, [kind === 'master' ? 'master_path' : `${kind}_url`]: kind === 'master' ? j.path : j.url }));
         setUploadState({ kind, name:file.name, progress:100 }); setBusy(''); setTimeout(()=>setUploadState(null),1500);
       } catch { alert('Upload failed'); setBusy(''); setUploadState(null); }
@@ -59,6 +65,7 @@ export default function Admin() {
 
   const addBeat = async () => {
     if (form.release_type === 'album' && !form.album_id) { alert('Choose an album first.'); return; }
+    if (form.published && Number(form.price) > 0 && !form.master_path) { alert('Upload a private master before publishing a paid beat.'); return; }
     setBusy('Publishing…');
     const payload = { ...form, album_id: form.release_type === 'album' ? form.album_id : '' };
     const r = await fetch('/api/admin/beats', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(payload) });
@@ -115,7 +122,8 @@ export default function Admin() {
           !form.title ||
           !form.cover_url ||
           !form.preview_url ||
-          (form.release_type === 'album' && !form.album_id)
+          (form.release_type === 'album' && !form.album_id) ||
+          (form.published && Number(form.price) > 0 && !form.master_path)
         }
       >
         {busy && !busy.startsWith('Uploading')
@@ -126,8 +134,9 @@ export default function Admin() {
       </button>
       {form.release_type==='album'&&<p className="tiny-note">An album can contain as many beats as you want. Create the album once in the Albums tab, then add each track to it here.</p>}
       {form.release_type==='single'&&<p className="tiny-note">Single beat publishes on its own and is not attached to an album.</p>}
+      {form.published && Number(form.price) > 0 && !form.master_path && <p className="error-box">Upload the private master before publishing a paid beat. Buyers must receive the file they paid for.</p>}
       <p className="tiny-note">Genres, styles and moods are pre-built so the public catalog stays clean and searchable.</p>
-    </div><div className="panel"><h2>Catalog ({beats.length})</h2><div className="admin-beat-list">{beats.map(b=><div className="admin-beat" key={b.id}><img src={b.cover_url||'/her9al-logo.jpg'} alt=""/><div><b>{b.title}</b><span>{b.published?'Live':'Draft'} · {b.genre||'—'} · {b.style||'—'} · {b.bpm||'—'} BPM</span></div><button onClick={()=>delBeat(b.id)}><Trash2 size={16}/></button></div>)}{!beats.length&&<p className="muted">No beats yet.</p>}</div></div></div>}
+    </div><div className="panel"><h2>Catalog ({beats.length})</h2><div className="admin-beat-list">{beats.map(b=><div className="admin-beat" key={b.id}><img src={b.cover_url||'/her9al-logo.jpg'} alt=""/><div><b>{b.title}</b><span>{b.published?'Live':'Draft'} · {b.genre||'—'} · {b.style||'—'} · {b.bpm||'—'} BPM</span></div><label className="catalog-master-upload" title="Attach or replace private master"><Upload size={14}/><input type="file" accept="audio/*,.zip" onChange={e=>e.target.files?.[0]&&upload('master',e.target.files[0],'catalog',b.id)}/></label><button onClick={()=>delBeat(b.id)}><Trash2 size={16}/></button></div>)}{!beats.length&&<p className="muted">No beats yet.</p>}</div></div></div>}
 
     {tab==='albums'&&<div className="admin-grid"><div className="panel"><h2><Disc3 size={19}/> Create an album / tape</h2><label>Album title<input value={albumForm.title} onChange={e=>setAlbumForm({...albumForm,title:e.target.value})} placeholder="HER9AL Vol. 1"/></label><div className="upload-row one"><label className={albumForm.cover_url?'done':''}><Upload size={16}/> Album cover<input type="file" accept="image/*" onChange={e=>e.target.files?.[0]&&upload('cover',e.target.files[0],'album')}/></label></div>{albumForm.cover_url&&<img className="album-cover-preview" src={albumForm.cover_url} alt="Album cover preview"/>}<label className="check"><input type="checkbox" checked={albumForm.published} onChange={e=>setAlbumForm({...albumForm,published:e.target.checked})}/> Publish album</label><button className="primary square" onClick={addAlbum} disabled={!albumForm.title||!!busy}>{busy||'Create album'}</button><p className="tiny-note">After creating it, choose this album from the beat upload form. Singles can stay standalone.</p></div><div className="panel"><h2>Albums ({albums.length})</h2><div className="album-admin-list">{albums.map(a=><div className="album-admin-row" key={a.id}><img src={a.cover_url||'/her9al-logo.jpg'} alt=""/><div><b>{a.title}</b><span>{a.published?'Published':'Draft'} · {beats.filter(b=>b.album_id===a.id).length} track{beats.filter(b=>b.album_id===a.id).length===1?'':'s'}</span></div><button onClick={()=>delAlbum(a.id)}><Trash2 size={16}/></button></div>)}{!albums.length&&<p className="muted">No albums yet.</p>}</div></div></div>}
 

@@ -9,8 +9,9 @@ export async function GET() {
     const db = adminDb();
     const { data, error } = await db
       .from('beats')
-      .select('id,title,slug,bpm,musical_key,mood,genre,style,description,cover_url,preview_url,published,created_at,album_id,albums(id,title,cover_url),licenses(id,name,price_cents,file_format,is_exclusive)')
+      .select('id,title,slug,bpm,musical_key,mood,genre,style,description,cover_url,preview_url,published,created_at,album_id,albums(id,title,cover_url,published),licenses(id,name,price_cents,file_format,is_exclusive,active)')
       .eq('published', true)
+      .eq('licenses.active', true)
       .order('created_at', { ascending: false });
 
     if (error) {

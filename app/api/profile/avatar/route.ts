@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/current-user';
 import { adminDb } from '@/lib/db';
 import { rateLimit, rateLimitResponse, rejectCrossSite } from '@/lib/api-security';
-import { canonicalAdminUploadType } from '@/lib/upload-policy';
+import { canonicalAdminUploadType, hasImageSignature } from '@/lib/upload-policy';
 import crypto from 'crypto';
 
 export const runtime = 'nodejs';
@@ -40,14 +40,17 @@ export async function POST(req: NextRequest) {
   const path = `${u.id}/${crypto.randomUUID()}.${ext}`;
   const db = adminDb();
   const buf = Buffer.from(await file.arrayBuffer());
+  if (!hasImageSignature(contentType, buf)) {
+    return NextResponse.json({ error: 'The image file does not match its extension.' }, { status: 400 });
+  }
 
   const { error: uploadError } = await db.storage
     .from('profile-avatars')
     .upload(path, buf, { contentType, upsert: false });
 
   if (uploadError) {
-    console.error('HER9AL AVATAR UPLOAD ERROR:', uploadError);
-    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    console.error('HER9AL AVATAR UPLOAD ERROR', { code: (uploadError as any)?.statusCode });
+    return NextResponse.json({ error: 'Could not upload image.' }, { status: 500 });
   }
 
   const { data: publicData } = db.storage.from('profile-avatars').getPublicUrl(path);
@@ -61,8 +64,8 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (updateError) {
-    console.error('HER9AL AVATAR PROFILE ERROR:', updateError);
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    console.error('HER9AL AVATAR PROFILE ERROR', { code: updateError.code });
+    return NextResponse.json({ error: 'Could not update profile.' }, { status: 500 });
   }
 
   return NextResponse.json({ user: updated, url: avatarUrl });

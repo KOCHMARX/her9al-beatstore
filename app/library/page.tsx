@@ -34,12 +34,12 @@ export default function Library() {
   return <main>
     <SiteHeader />
     <section className="section page">
-      <div className="section-head"><div><span>MY LIBRARY</span><h1>Purchased beats.</h1><p className="subcopy">Re-download your paid masters whenever you need them.</p></div></div>
+      <div className="section-head"><div><span>MY LIBRARY</span><h1>Your beats.</h1><p className="subcopy">Re-download your licensed masters whenever you need them.</p></div></div>
       <div className="library-list">
-        {status === 'ready' && items.map(x => <article className="library-item" key={x.id}><img src={x.beat?.cover_url || '/her9al-logo.jpg'} alt="" /><div><h3>{x.beat?.title}</h3><p>{x.license?.name} · {x.license?.file_format} · ${(x.price_cents / 100).toFixed(2)}</p>{x.license?.terms && <p className="subcopy">License terms: {x.license.terms}</p>}</div><a className="primary small" href={`/api/library/download?item=${x.id}`}><Download size={16} /> Download</a></article>)}
+        {status === 'ready' && items.map(x => <article className="library-item" key={x.id}><img src={x.beat?.cover_url || '/her9al-logo.jpg'} alt="" /><div><h3>{x.beat?.title}</h3><p>{x.license?.name} · {x.license?.file_format} · {Number(x.price_cents) === 0 ? 'Free' : `$${(x.price_cents / 100).toFixed(2)}`}</p>{x.license?.terms && <p className="subcopy">License terms: {x.license.terms}</p>}</div><a className="primary small" href={`/api/library/download?item=${x.id}`}><Download size={16} /> Download</a></article>)}
         {status === 'loading' && <div className="empty-state" role="status">Loading your library…</div>}
-        {status === 'error' && <div className="empty-state" role="alert">Your library could not be loaded right now. Please try again shortly.</div>}
-        {status === 'ready' && !items.length && <div className="empty-state">You have no paid beats yet. Your purchases will appear here automatically.</div>}
+        {status === 'error' && <div className="error-box" role="alert">Your library could not be loaded right now. Please try again shortly.</div>}
+        {status === 'ready' && !items.length && <div className="empty-state">You have no beats yet. Claimed free downloads and purchases will appear here automatically.</div>}
       </div>
     </section>
   </main>;

@@ -22,6 +22,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ licen
 
   const beat: any = (license as any)?.beat;
   if (!license || !beat || !beat.published) notFound();
+  if (Number(license.price_cents) <= 0) redirect(`/beats/${encodeURIComponent(beat.slug)}`);
 
   return (
     <main>

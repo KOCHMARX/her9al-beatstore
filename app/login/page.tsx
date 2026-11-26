@@ -33,6 +33,11 @@ export default function Login() {
     if (code && messages[code]) setError(messages[code]);
   }, []);
 
+  const safeReturnPath = () => {
+    const next = new URLSearchParams(window.location.search).get('next') || '';
+    return next.startsWith('/') && !next.startsWith('//') ? next : '/profile';
+  };
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true); setError('');
@@ -40,7 +45,7 @@ export default function Login() {
     const j = await r.json().catch(() => ({}));
     setBusy(false);
     if (!r.ok) return setError(j.error || 'Login failed.');
-    location.href = '/profile';
+    location.href = safeReturnPath();
   };
 
   return <main className="auth-wrap"><div className="auth-card auth-card-pro">

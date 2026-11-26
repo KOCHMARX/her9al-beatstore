@@ -1,4 +1,11 @@
-import { adminDb } from '@/lib/db';
+type StorageObjectDb = {
+  storage: {
+    from(bucket: string): {
+      list(prefix: string, options?: unknown): Promise<{ data: any; error: any }>;
+      download(path: string): Promise<{ data: any; error: any }>;
+    };
+  };
+};
 
 type ObjectRules = {
   ownerId: string;
@@ -7,7 +14,7 @@ type ObjectRules = {
 };
 
 export async function verifyOwnedStorageObject(
-  db: ReturnType<typeof adminDb>,
+  db: StorageObjectDb,
   bucket: string,
   path: string,
   rules: ObjectRules,
@@ -19,7 +26,7 @@ export async function verifyOwnedStorageObject(
   if (!name) return false;
   const { data, error } = await db.storage.from(bucket).list(rules.ownerId, { limit: 100, search: name });
   if (error) return false;
-  const object = data?.find(candidate => candidate.name === name);
+  const object = data?.find((candidate: { name: string }) => candidate.name === name);
   if (!object) return false;
 
   const metadata = (object.metadata || {}) as Record<string, unknown>;
@@ -53,7 +60,7 @@ function imageDimensions(buffer: Buffer) {
 }
 
 export async function verifyReleaseArtwork(
-  db: ReturnType<typeof adminDb>,
+  db: StorageObjectDb,
   path: string,
   minimumPixels = 1400,
 ) {

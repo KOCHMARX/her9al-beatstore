@@ -83,7 +83,7 @@ try {
     assert.ok(response.status === 401 || response.status === 403, `${route} should require authentication (got ${response.status})`);
   }
 
-  for (const route of ['/api/checkout', '/api/distribution/upload']) {
+  for (const route of ['/api/checkout', '/api/distribution/upload', '/api/library/claim-free', '/api/admin/licenses']) {
     const response = await fetch(`${origin}${route}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

@@ -82,6 +82,18 @@ export default function Admin() {
     setBusy('');
   };
 
+  const addFreeLicense = async (beatId: string) => {
+    setBusy('Adding free license…');
+    const r = await fetch('/api/admin/licenses', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ beat_id: beatId, name: 'Free download', price: 0, file_format: 'WAV' }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) alert(j.error || 'Could not add free license');
+    else await load();
+    setBusy('');
+  };
+
   const addAlbum = async () => {
     setBusy('Creating album…');
     const r = await fetch('/api/admin/albums', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(albumForm) });
@@ -144,7 +156,7 @@ export default function Admin() {
       {form.release_type==='single'&&<p className="tiny-note">Single beat publishes on its own and is not attached to an album.</p>}
       {form.published && Number(form.price) > 0 && !form.master_path && <p className="error-box">Upload the private master before publishing a paid beat. Buyers must receive the file they paid for.</p>}
       <p className="tiny-note">Genres, styles and moods are pre-built so the public catalog stays clean and searchable.</p>
-    </div><div className="panel"><h2>Catalog ({beats.length})</h2><div className="admin-beat-list">{beats.map(b=><div className="admin-beat" key={b.id}><img src={b.cover_url||'/her9al-logo.jpg'} alt=""/><div><b>{b.title}</b><span>{b.published?'Live':'Draft'} · {b.genre||'—'} · {b.style||'—'} · {b.bpm||'—'} BPM</span></div><label className="catalog-master-upload" title="Attach or replace private master"><Upload size={14}/><input type="file" accept="audio/*,.zip" onChange={e=>e.target.files?.[0]&&upload('master',e.target.files[0],'catalog',b.id)}/></label><button onClick={()=>delBeat(b.id)}><Trash2 size={16}/></button></div>)}{!beats.length&&<p className="muted">No beats yet.</p>}</div></div></div>}
+    </div><div className="panel"><h2>Catalog ({beats.length})</h2><div className="admin-beat-list">{beats.map(b=><div className="admin-beat" key={b.id}><img src={b.cover_url||'/her9al-logo.jpg'} alt=""/><div><b>{b.title}</b><span>{b.published?'Live':'Draft'} · {b.genre||'—'} · {b.style||'—'} · {b.bpm||'—'} BPM</span></div><label className="catalog-master-upload" title="Attach or replace private master"><Upload size={14}/><input type="file" accept="audio/*,.zip" onChange={e=>e.target.files?.[0]&&upload('master',e.target.files[0],'catalog',b.id)}/></label><button onClick={()=>addFreeLicense(b.id)} disabled={!!busy} title="Add free license">Free license</button><button onClick={()=>delBeat(b.id)}><Trash2 size={16}/></button></div>)}{!beats.length&&<p className="muted">No beats yet.</p>}</div></div></div>}
 
     {tab==='albums'&&<div className="admin-grid"><div className="panel"><h2><Disc3 size={19}/> Create an album / tape</h2><label>Album title<input value={albumForm.title} onChange={e=>setAlbumForm({...albumForm,title:e.target.value})} placeholder="HER9AL Vol. 1"/></label><div className="upload-row one"><label className={albumForm.cover_url?'done':''}><Upload size={16}/> Album cover<input type="file" accept="image/*" onChange={e=>e.target.files?.[0]&&upload('cover',e.target.files[0],'album')}/></label></div>{albumForm.cover_url&&<img className="album-cover-preview" src={albumForm.cover_url} alt="Album cover preview"/>}<label className="check"><input type="checkbox" checked={albumForm.published} onChange={e=>setAlbumForm({...albumForm,published:e.target.checked})}/> Publish album</label><button className="primary square" onClick={addAlbum} disabled={!albumForm.title||!!busy}>{busy||'Create album'}</button><p className="tiny-note">After creating it, choose this album from the beat upload form. Singles can stay standalone.</p></div><div className="panel"><h2>Albums ({albums.length})</h2><div className="album-admin-list">{albums.map(a=><div className="album-admin-row" key={a.id}><img src={a.cover_url||'/her9al-logo.jpg'} alt=""/><div><b>{a.title}</b><span>{a.published?'Published':'Draft'} · {beats.filter(b=>b.album_id===a.id).length} track{beats.filter(b=>b.album_id===a.id).length===1?'':'s'}</span></div><button onClick={()=>delAlbum(a.id)}><Trash2 size={16}/></button></div>)}{!albums.length&&<p className="muted">No albums yet.</p>}</div></div></div>}
 

@@ -4,6 +4,7 @@ import { adminDb } from '@/lib/db';
 import { isUuid, rateLimit, rateLimitResponse, rejectCrossSite } from '@/lib/api-security';
 import { clean, cleanUrl } from '@/lib/distribution';
 import { publishedBeatRejection } from '@/lib/beatstore-policy';
+import { enteredPriceCents } from '@/lib/beatstore-routes';
 
 export const runtime = 'nodejs';
 
@@ -30,7 +31,8 @@ export async function POST(req: NextRequest) {
   const title = clean(b.title, 160);
   if (!title) return NextResponse.json({ error: 'title required' }, { status: 400 });
   const slug = `${clean(b.slug || title, 160).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now().toString().slice(-5)}`;
-  const price = Math.max(0, Math.min(100_000_000, Math.round(Number(b.price || 0) * 100)));
+  const priceCents = enteredPriceCents(b.price);
+  const price = priceCents ?? 0;
   const masterPath = clean(b.master_path, 500) || null;
   const publicationError = publishedBeatRejection({ published: !!b.published, price_cents: price, master_path: masterPath });
   if (publicationError) return NextResponse.json({ error: publicationError }, { status: 400 });
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
     console.error('HER9AL ADMIN BEAT CREATE ERROR', { code: error?.code });
     return NextResponse.json({ error: 'Could not create beat.' }, { status: 500 });
   }
-  if (price > 0) {
+  if (priceCents !== null) {
     const { error: licenseError } = await db.from('licenses').insert({
       beat_id: beat.id,
       name: clean(b.license_name, 80) || 'Standard',

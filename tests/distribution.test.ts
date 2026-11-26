@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ADMIN_REVIEW_STATUSES, DELIVERY_STATUSES, EDITABLE_STATUSES, STATUS_LABEL, STATUSES, canonicalUploadType, clean, cleanUrl, isValidReleaseDate } from '../lib/distribution.ts';
-import { buildAuditEvent, canAdminReview, canArtistEdit, isDeliveryStatus } from '../lib/release-workflow.ts';
+import { artistVisibleAuditNote, buildAuditEvent, canAdminReview, canArtistEdit, isDeliveryStatus } from '../lib/release-workflow.ts';
 
 test('upload MIME types are canonicalized only from supported media extensions', () => {
   assert.equal(canonicalUploadType('audio', '', 'master.wav'), 'audio/wav');
@@ -44,6 +44,9 @@ test('review permissions and audit payloads follow the workflow', () => {
     release_id: 'r1', actor_id: 'u1', from_status: 'submitted', to_status: 'approved', note: 'ok',
   });
   assert.equal(buildAuditEvent({ releaseId: '', actorId: 'u1', from: null, to: 'approved' }), null);
+  assert.equal(artistVisibleAuditNote('Artist-facing reason'), 'Artist-facing reason');
+  assert.equal(artistVisibleAuditNote(''), null);
+  assert.equal(artistVisibleAuditNote(null), null);
 });
 
 test('text and URL cleaners bound input and reject unsafe protocols', () => {

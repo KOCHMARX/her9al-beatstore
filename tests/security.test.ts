@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import test from 'node:test';
 import { createSessionToken, makeState, verifySessionToken } from '../lib/auth-session.ts';
 import { hashPassword, verifyPassword } from '../lib/password.ts';
+import { newEmailAccountRole } from '../lib/role-policy.ts';
 import { validStripeSignature } from '../lib/stripe-security.ts';
 
 test('session tokens round-trip and reject tampering', () => {
@@ -16,6 +17,11 @@ test('session tokens round-trip and reject tampering', () => {
   const flipped = `${signature[0] === 'A' ? 'B' : 'A'}${signature.slice(1)}`;
   assert.equal(verifySessionToken(`${body}.${flipped}`), null);
   assert.equal(verifySessionToken('not-a-session'), null);
+});
+
+test('unauthenticated email signup can never create a privileged role', () => {
+  process.env.OWNER_EMAIL = 'owner@example.com';
+  assert.equal(newEmailAccountRole(), 'customer');
 });
 
 test('OAuth state values are unique and URL-safe', () => {

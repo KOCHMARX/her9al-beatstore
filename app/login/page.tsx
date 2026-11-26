@@ -25,6 +25,7 @@ export default function Login() {
       google_profile: 'HER9AL could not read your Google profile. Please try again.',
       discord_profile: 'HER9AL could not read your Discord profile. Please try again.',
       google_email_unverified: 'Your Google email is not verified. Verify it in Google, then try again.',
+      discord_email_unverified: 'Your Discord email is not verified. Verify it in Discord, then try again.',
       google_config: 'Google sign-in is unavailable right now. Please try again later.',
       discord_config: 'Discord sign-in is unavailable right now. Please try again later.',
       database: 'We could not save your account right now. Please try again later.',

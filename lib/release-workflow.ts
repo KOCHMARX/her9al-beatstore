@@ -12,6 +12,12 @@ export function isDeliveryStatus(status: unknown): boolean {
   return typeof status === 'string' && (DELIVERY_STATUSES as readonly string[]).includes(status);
 }
 
+// History is artist-visible. Only the artist-facing reason may be stored there;
+// private staff notes stay in releases.private_note and must never be copied here.
+export function artistVisibleAuditNote(reason: unknown): string | null {
+  return typeof reason === 'string' && reason.trim() ? reason.slice(0, 600) : null;
+}
+
 export function buildAuditEvent(input: {
   releaseId: unknown;
   actorId: unknown;

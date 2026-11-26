@@ -4,7 +4,7 @@ import { adminDb } from '@/lib/db';
 import { ADMIN_REVIEW_STATUSES, DELIVERY_STATUSES, STATUS_LABEL, clean, cleanUrl, Track } from '@/lib/distribution';
 import { buildDeliveryPackage } from '@/lib/distributor';
 import { isUuid, rateLimit, rateLimitResponse, rejectCrossSite } from '@/lib/api-security';
-import { buildAuditEvent } from '@/lib/release-workflow';
+import { artistVisibleAuditNote, buildAuditEvent } from '@/lib/release-workflow';
 
 export const runtime = 'nodejs';
 
@@ -127,7 +127,7 @@ export async function PATCH(req: NextRequest) {
     actorId: user.id,
     from: current.status,
     to: body.status,
-    note: [reason, clean(body.private_note, 200)].filter(Boolean).join(' | ') || null,
+    note: artistVisibleAuditNote(reason),
   });
   if (audit) {
     const { error: eventError } = await db.from('release_events').insert(audit);

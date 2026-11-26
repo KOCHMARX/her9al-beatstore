@@ -186,7 +186,8 @@ export async function completeOAuthFlow(input: {
   if (!profileRes.ok) return fail('profile');
   const profile = await profileRes.json().catch(() => null) as Record<string, unknown> | null;
   if (!profile) return fail('profile');
-  if (isGoogle && profile.email_verified !== true) return fail('email_unverified');
+  // Owner role is assigned by email match, so both providers must confirm the address.
+  if (profile.email_verified !== true && (isGoogle || profile.verified !== true)) return fail('email_unverified');
 
   const providerUserId = String(isGoogle ? profile.sub : profile.id || '');
   if (!providerUserId) return fail('profile');

@@ -12,6 +12,13 @@ export function canConfirmDelivery(role: unknown): boolean {
   return typeof role === 'string' && (MANAGER_ROLES as readonly string[]).includes(role);
 }
 
+// Email signup is unauthenticated: it can never grant a privileged role, even when
+// the submitted address matches OWNER_EMAIL. Owners come from verified provider
+// login or an existing owner's explicit admin role change.
+export function newEmailAccountRole(): 'customer' {
+  return 'customer';
+}
+
 export function canAssignRole(actorRole: unknown, targetRole: unknown): boolean {
   if (typeof targetRole !== 'string' || !(ASSIGNABLE_ROLES as readonly string[]).includes(targetRole)) return false;
   if (actorRole === 'owner') return true;

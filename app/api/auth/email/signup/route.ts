@@ -3,6 +3,7 @@ import { createSessionToken, sessionCookie } from '@/lib/auth-session';
 import { adminDb } from '@/lib/db';
 import { hashPassword } from '@/lib/password';
 import { rateLimit, rateLimitResponse, rejectCrossSite } from '@/lib/api-security';
+import { newEmailAccountRole } from '@/lib/role-policy';
 
 export const runtime = 'nodejs';
 
@@ -26,14 +27,13 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await db.from('app_users').select('id').eq('provider', 'email').eq('email', email).maybeSingle();
     if (existing) return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
 
-    const ownerEmail = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
     const { data: user, error } = await db.from('app_users').insert({
       provider: 'email',
       provider_user_id: email,
       email,
       display_name: displayName || email.split('@')[0],
       password_hash: hashPassword(password),
-      role: ownerEmail === email && ownerEmail ? 'owner' : 'customer',
+      role: newEmailAccountRole(),
     }).select('id,email,display_name,avatar_url,role,provider').single();
 
     if (error?.code === '23505') return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });

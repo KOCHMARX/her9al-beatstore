@@ -130,6 +130,21 @@ test('failed token exchange and unverified email do not create a session', async
   assert.equal(unverified.path, '/login?error=google_email_unverified');
 });
 
+test('unverified Discord email cannot create an owner-eligible session', async () => {
+  const { impl } = fakeFetch([
+    okResponse({ access_token: 'test-access-token' }),
+    okResponse({ id: 'discord-user-1', email: 'owner@example.com', verified: false, username: 'Artist' }),
+  ]);
+  process.env.OWNER_EMAIL = 'owner@example.com';
+  const outcome = await completeOAuthFlow(baseInput({
+    provider: 'discord',
+    redirectUri: 'https://her9al-preview.vercel.app/api/auth/discord/callback',
+    fetchImpl: impl,
+  }));
+  assert.equal(outcome.kind, 'redirect');
+  assert.equal(outcome.path, '/login?error=discord_email_unverified');
+});
+
 test('successful Google callback creates a signed session with the allowlisted redirect_uri', async () => {
   const { impl, calls } = fakeFetch([
     okResponse({ access_token: 'test-access-token' }),
